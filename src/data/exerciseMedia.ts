@@ -459,6 +459,114 @@ export const EXERCISE_MEDIA_DATABASE: ExerciseMedia[] = [
       difficultyLevel: 'Fácil para principiantes',
       category: 'Máquinas Guiadas'
     }
+  },
+  {
+    id: 'caminadora-inclinada',
+    exerciseName: 'Caminata / Carrera en Caminadora (Velocidad e Inclinación)',
+    aliases: ['caminadora', 'treadmill', 'cinta de correr', 'caminadora inclinada', 'trotadora', 'carrera en cinta', 'caminata inclinada'],
+    muscleTarget: 'Sistema Cardiovascular, Cuádriceps, Glúteos y Gemelos',
+    secondaryMuscles: ['Core', 'Isquiotibiales', 'Resistencia Pulmonar'],
+    gifUrl: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@main/cardio/treadmill.gif',
+    executionTips: [
+      'Mantén la mirada al frente y la espalda erguida, evitando agarrarte fuertemente de los pasamanos para no falsear el gasto calórico.',
+      'Para caminata inclinada de alta quema (método 12-3-30): velocidad 4.8-5.5 km/h con inclinación del 10% al 12%.',
+      'Para carrera continua: ajusta la velocidad entre 8.0 y 14.0 km/h con inclinación base de 1.0% para simular resistencia del viento.',
+      'Apoya el mediopié suavemente en cada zancada para amortiguar el impacto sobre las rodillas.'
+    ],
+    apparatus: {
+      name: 'Caminadora Eléctrica Comercial con Inclinación (Treadmill)',
+      aliases: ['Treadmill Pro', 'Cinta de Correr Motorizada', 'Trotadora Electrónica'],
+      imageUrl: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?auto=format&fit=crop&w=800&q=80',
+      visualIdentification: 'Banda rodante motorizada con consola digital frontal LED/TFT, botones de velocidad (km/h) a la derecha, botones de inclinación (%) a la izquierda y llave de seguridad magnética roja.',
+      howToAdjust: [
+        'Engancha siempre la pinza de parada de emergencia roja a tu ropa antes de iniciar la marcha.',
+        'Presiona "Quick Start" y usa las teclas de Incline (%) para subir pendiente (0 a 15%) y Speed (km/h) para velocidad.',
+        'Coloca las palmas en los sensores metálicos de los manubrios para medir tu frecuencia cardíaca.'
+      ],
+      difficultyLevel: 'Fácil para principiantes',
+      category: 'Cardio & Funcional'
+    }
+  },
+  {
+    id: 'escaladora-stairmaster',
+    exerciseName: 'Escalada en Escaladora Sinfín (StairMaster / Stepmill)',
+    aliases: ['escaladora', 'stairmaster', 'stepmill', 'escalera sin fin', 'escaladora sinfin', 'gradas', 'escaleras'],
+    muscleTarget: 'Glúteos, Isquiotibiales, Cuádriceps y Quema Calórica Extrema',
+    secondaryMuscles: ['Gemelos', 'Core Estabilizador', 'Potencia Cardiovascular'],
+    gifUrl: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@main/cardio/stairmaster.gif',
+    executionTips: [
+      'Pisa cada peldaño con toda la planta del pie (no solo con las puntas) para maximizar la activación de glúteos e isquiotibiales.',
+      'Mantén la postura erguida: NO te inclines hacia adelante descargando tu peso en los brazos.',
+      'Sube a un ritmo constante y controlado; sube de nivel solo cuando puedas mantener la postura perfecta.',
+      'Si quieres quemar grasa de forma acelerada, mantén intervalos de 2 min al nivel 6 y 1 min al nivel 10-12.'
+    ],
+    apparatus: {
+      name: 'Escaladora Infinita Comercial (StairMaster / Stepmill)',
+      aliases: ['StairMaster', 'Stepmill Pro', 'Escalera Mecánica de Fitness', 'Climber'],
+      imageUrl: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?auto=format&fit=crop&w=800&q=80',
+      visualIdentification: 'Estructura vertical alta imitando escaleras reales rotativas continuas, con barandillas laterales y consola digital elevada.',
+      howToAdjust: [
+        'Sube a los escalones apoyando las manos en los pasamanos laterales.',
+        'Pulsa "Start" en la pantalla y ajusta el nivel de velocidad (Niveles 1 a 15, equivalente a 30 a 140 escalones/min).',
+        'Usa el botón de STOP grande de emergencia en caso de fatiga extrema para detener los peldaños al instante.'
+      ],
+      difficultyLevel: 'Intermedio',
+      category: 'Cardio & Funcional'
+    }
+  },
+  {
+    id: 'eliptica-trainer',
+    exerciseName: 'Cardio en Máquina Elíptica (Cross Trainer Cero Impacto)',
+    aliases: ['elíptica', 'eliptica', 'cross trainer', 'maquina eliptica', 'eliptica profesional', 'eliptica magnetica'],
+    muscleTarget: 'Cardio Sin Impacto Articular, Glúteos, Cuádriceps y Dorsales',
+    secondaryMuscles: ['Bíceps', 'Pectorales', 'Gemelos', 'Core'],
+    gifUrl: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@main/cardio/elliptical.gif',
+    executionTips: [
+      'Apoya completamente los pies en las plataformas y realiza un movimiento fluido y elíptico continuo.',
+      'Empuja y jala activamente de los brazos móviles para involucrar espalda, pecho y hombros en el gasto calórico.',
+      'Mantén las rodillas alineadas hacia adelante sin dejar que colapsen hacia adentro.',
+      'Puedes pedalear en reversa durante 3-5 minutos para focalizar el trabajo en femorales y glúteos.'
+    ],
+    apparatus: {
+      name: 'Máquina Elíptica de Resistencia Magnética (Cross Trainer)',
+      aliases: ['Elliptical Cross Trainer', 'Bicicleta Elíptica', 'Eliptica Gym'],
+      imageUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80',
+      visualIdentification: 'Máquina con dos grandes pedales suspendidos sobre rieles elípticos y dos palancas verticales largas para los brazos conectadas a un volante magnético.',
+      howToAdjust: [
+        'Coloca los pies en el centro de las plataformas antideslizantes.',
+        'Selecciona el nivel de resistencia magnética (Nivel 1 al 20) y la inclinación de la rampa si el modelo la incluye.',
+        'Mantén una cadencia objetivo de entre 55 y 70 zancadas por minuto (SPM).'
+      ],
+      difficultyLevel: 'Fácil para principiantes',
+      category: 'Cardio & Funcional'
+    }
+  },
+  {
+    id: 'bicicleta-spinning-fija',
+    exerciseName: 'Ciclismo Indoor en Bicicleta Fija / Spinning',
+    aliases: ['bicicleta fija', 'spinning', 'bici fija', 'indoor cycle', 'bici estatica', 'bicicleta estatica', 'bici spinning'],
+    muscleTarget: 'Cuádriceps, Isquiotibiales, Gemelos y Capacidad Aeróbica',
+    secondaryMuscles: ['Glúteos', 'Core', 'Resistencia Cardiovascular'],
+    gifUrl: 'https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@main/cardio/stationary-bike.gif',
+    executionTips: [
+      'Ajusta la altura del sillín al nivel de tu cresta ilíaca (hueso de la cadera) para que la pierna quede con ~25-30° de flexión en el punto más bajo del pedaleo.',
+      'Ajusta el manubrio a una distancia que te permita apoyar los brazos cómodamente sin encorvar la zona lumbar.',
+      'Aplica resistencia en la perilla para evitar que los pedales giren solos y aprovechar la fase de empuje y tracción.',
+      'Alterna fases sentado a alta cadencia (85-100 RPM) con fases de pie en modo subida con mayor resistencia.'
+    ],
+    apparatus: {
+      name: 'Bicicleta de Spinning / Estática Magnética',
+      aliases: ['Spin Bike', 'Bicicleta Fija Magnética', 'Indoor Cycling Bike', 'Bicicleta Estática'],
+      imageUrl: 'https://images.unsplash.com/photo-1520877880798-5ee008091152?auto=format&fit=crop&w=800&q=80',
+      visualIdentification: 'Bicicleta con chasis metálico reforzado, volante de inercia frontal de 18-22 kg, perilla giratoria central de freno/resistencia, calapiés y pantalla digital de RPM/Wats.',
+      howToAdjust: [
+        'Afloja la perilla del poste del sillín y colócalo a la altura de tu cadera. Vuelve a apretar fuertemente.',
+        'Ajusta la distancia horizontal del sillín para que tu rodilla delantera coincida con el eje del pedal.',
+        'Gira la perilla central en sentido horario (+) para aumentar la resistencia de pedaleo o pulsa hacia abajo para frenado inmediato.'
+      ],
+      difficultyLevel: 'Fácil para principiantes',
+      category: 'Cardio & Funcional'
+    }
   }
 ];
 
@@ -483,7 +591,25 @@ export function getExerciseMedia(exerciseName: string): ExerciseMedia {
     }
   }
 
-  // 2. Keyword heuristic matching
+  // 2. Keyword heuristic matching for cardio & specific apparatus
+  if (query.includes('caminador') || query.includes('treadmill') || query.includes('cinta') || query.includes('trotador') || (query.includes('caminat') && !query.includes('zancad'))) {
+    return EXERCISE_MEDIA_DATABASE.find(e => e.id === 'caminadora-inclinada') || EXERCISE_MEDIA_DATABASE[0];
+  }
+  if (query.includes('escalador') || query.includes('stair') || query.includes('stepmill') || query.includes('grada')) {
+    if (query.includes('mountain') || query.includes('cruzad') || query.includes('plancha')) {
+      return EXERCISE_MEDIA_DATABASE.find(e => e.id === 'mountain-climbers') || EXERCISE_MEDIA_DATABASE[0];
+    }
+    return EXERCISE_MEDIA_DATABASE.find(e => e.id === 'escaladora-stairmaster') || EXERCISE_MEDIA_DATABASE[0];
+  }
+  if (query.includes('eliptic') || query.includes('cross trainer')) {
+    return EXERCISE_MEDIA_DATABASE.find(e => e.id === 'eliptica-trainer') || EXERCISE_MEDIA_DATABASE[0];
+  }
+  if (query.includes('bici') || query.includes('spinning') || query.includes('bike') || query.includes('ciclis') || query.includes('estatic')) {
+    if (query.includes('air') || query.includes('remo')) {
+      return EXERCISE_MEDIA_DATABASE.find(e => e.id === 'remo-ergometro-airbike') || EXERCISE_MEDIA_DATABASE[0];
+    }
+    return EXERCISE_MEDIA_DATABASE.find(e => e.id === 'bicicleta-spinning-fija') || EXERCISE_MEDIA_DATABASE[0];
+  }
   if (query.includes('sentadill') || query.includes('squat')) {
     return EXERCISE_MEDIA_DATABASE.find(e => e.id === 'sentadillas-goblet') || EXERCISE_MEDIA_DATABASE[0];
   }
@@ -520,7 +646,7 @@ export function getExerciseMedia(exerciseName: string): ExerciseMedia {
   if (query.includes('burpee') || query.includes('box jump') || query.includes('cajon')) {
     return EXERCISE_MEDIA_DATABASE.find(e => e.id === 'burpees-salto') || EXERCISE_MEDIA_DATABASE[0];
   }
-  if (query.includes('climber') || query.includes('escalador') || query.includes('plancha')) {
+  if (query.includes('climber') || query.includes('plancha')) {
     return EXERCISE_MEDIA_DATABASE.find(e => e.id === 'mountain-climbers') || EXERCISE_MEDIA_DATABASE[0];
   }
   if (query.includes('extension') && query.includes('pierna')) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Member, WorkoutSession, WeightEntry, GymCoach } from '../types';
 import {
   User,
@@ -57,6 +57,13 @@ export const MemberProfileView: React.FC<MemberProfileViewProps> = ({
   const [formData, setFormData] = useState<Member>({ ...member });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Keep form data synced when member updates externally
+  useEffect(() => {
+    if (!isEditing) {
+      setFormData({ ...member });
+    }
+  }, [member, isEditing]);
 
   // Calculate BMI
   const heightM = (member.heightCm || 170) / 100;
