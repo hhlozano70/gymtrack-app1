@@ -25,9 +25,9 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
 
   // Deep copy exercises so modifications don't mutate original preset
   const [workoutExercises, setWorkoutExercises] = useState(() =>
-    routine.exercises.map((ex) => ({
+    (routine.exercises || []).map((ex) => ({
       ...ex,
-      sets: ex.sets.map((s) => ({ ...s, completed: false })),
+      sets: (ex.sets || []).map((s) => ({ ...s, completed: false })),
     }))
   );
 
@@ -51,8 +51,8 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   let totalCompletedSets = 0;
   let totalSets = 0;
 
-  workoutExercises.forEach((ex) => {
-    ex.sets.forEach((set) => {
+  (workoutExercises || []).forEach((ex) => {
+    (ex.sets || []).forEach((set) => {
       totalSets++;
       if (set.completed) {
         totalCompletedSets++;

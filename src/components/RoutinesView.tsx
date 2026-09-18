@@ -209,12 +209,12 @@ export const RoutinesView: React.FC<RoutinesViewProps> = ({
               {/* Metrics Pills */}
               <div className="flex items-center gap-4 text-xs font-mono text-slate-600 my-4 py-2 px-3 bg-slate-50 rounded-xl border border-slate-100">
                 <span className="flex items-center gap-1 font-bold text-emerald-600">
-                  <Flame className="w-3.5 h-3.5" /> ~{routine.estimatedCalories} kcal
+                  <Flame className="w-3.5 h-3.5" /> ~{routine.estimatedCalories || 450} kcal
                 </span>
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" /> {routine.durationMinutes} min
+                  <Clock className="w-3.5 h-3.5 text-slate-400" /> {routine.durationMinutes || 45} min
                 </span>
-                <span>• {routine.exercises.length} ejercicios</span>
+                <span>• {(routine.exercises || []).length} ejercicios</span>
               </div>
 
               {/* Exercises summary list with Visual Badges (GIF & Machine) */}
@@ -222,23 +222,23 @@ export const RoutinesView: React.FC<RoutinesViewProps> = ({
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Ejercicios (con GIF & Aparato):
                 </span>
-                {routine.exercises.slice(0, 3).map((ex, idx) => (
+                {(routine.exercises || []).slice(0, 3).map((ex, idx) => (
                   <div
                     key={idx}
                     className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-slate-700 bg-slate-50/90 p-2 rounded-xl border border-slate-100"
                   >
                     <div className="flex items-center justify-between sm:justify-start gap-1.5 truncate max-w-[190px]">
-                      <span className="truncate font-semibold text-slate-900">• {ex.exerciseName}</span>
+                      <span className="truncate font-semibold text-slate-900">• {ex.exerciseName || 'Ejercicio'}</span>
                       <span className="text-[10px] text-slate-400 font-mono shrink-0">
-                        ({ex.targetSets}x{ex.targetReps})
+                        ({ex.targetSets || 3}x{ex.targetReps || '12'})
                       </span>
                     </div>
-                    <ExerciseVisualBadge exerciseName={ex.exerciseName} variant="compact" />
+                    <ExerciseVisualBadge exerciseName={ex.exerciseName || ''} variant="compact" />
                   </div>
                 ))}
-                {routine.exercises.length > 3 && (
+                {(routine.exercises || []).length > 3 && (
                   <span className="text-[11px] text-slate-500 font-medium block pt-0.5">
-                    + {routine.exercises.length - 3} ejercicios más con guía visual y GIF
+                    + {(routine.exercises || []).length - 3} ejercicios más con guía visual y GIF
                   </span>
                 )}
               </div>

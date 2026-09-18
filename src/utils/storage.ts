@@ -347,7 +347,18 @@ export function getStoredRoutines(): Routine[] {
   if (typeof window === 'undefined') return INITIAL_ROUTINES;
   try {
     const data = localStorage.getItem(STORAGE_KEYS.ROUTINES);
-    return data ? JSON.parse(data) : INITIAL_ROUTINES;
+    if (!data) return INITIAL_ROUTINES;
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed) || parsed.length === 0) return INITIAL_ROUTINES;
+    return parsed.map((r: any) => ({
+      ...r,
+      exercises: Array.isArray(r.exercises)
+        ? r.exercises.map((e: any) => ({
+            ...e,
+            sets: Array.isArray(e.sets) ? e.sets : [],
+          }))
+        : [],
+    }));
   } catch {
     return INITIAL_ROUTINES;
   }

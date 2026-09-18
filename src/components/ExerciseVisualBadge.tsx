@@ -10,13 +10,15 @@ interface ExerciseVisualBadgeProps {
 }
 
 export const ExerciseVisualBadge: React.FC<ExerciseVisualBadgeProps> = ({
-  exerciseName,
+  exerciseName = '',
   variant = 'compact',
   className = '',
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [initialView, setInitialView] = useState<'gif' | 'apparatus'>('gif');
-  const media = getExerciseMedia(exerciseName);
+  const media = getExerciseMedia(exerciseName || '');
+  const apparatusName = media?.apparatus?.name || 'Aparato de Gimnasio';
+  const apparatusShortName = apparatusName.split('(')[0]?.trim() || apparatusName;
 
   const handleOpen = (view: 'gif' | 'apparatus', e: React.MouseEvent) => {
     e.stopPropagation();
@@ -38,7 +40,7 @@ export const ExerciseVisualBadge: React.FC<ExerciseVisualBadgeProps> = ({
         </button>
 
         <ExerciseVisualModal
-          exerciseName={exerciseName}
+          exerciseName={exerciseName || ''}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           initialView={initialView}
@@ -59,8 +61,8 @@ export const ExerciseVisualBadge: React.FC<ExerciseVisualBadgeProps> = ({
               title="Click para ver GIF en grande"
             >
               <img
-                src={media.gifUrl}
-                alt={exerciseName}
+                src={media?.gifUrl || ''}
+                alt={exerciseName || 'Ejercicio'}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               />
@@ -79,7 +81,7 @@ export const ExerciseVisualBadge: React.FC<ExerciseVisualBadgeProps> = ({
                 className="text-left font-bold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <Dumbbell className="w-3 h-3 text-emerald-400" />
-                <span className="truncate max-w-[200px] sm:max-w-xs">{media.apparatus.name}</span>
+                <span className="truncate max-w-[200px] sm:max-w-xs">{apparatusName}</span>
               </button>
             </div>
           </div>
@@ -105,7 +107,7 @@ export const ExerciseVisualBadge: React.FC<ExerciseVisualBadgeProps> = ({
         </div>
 
         <ExerciseVisualModal
-          exerciseName={exerciseName}
+          exerciseName={exerciseName || ''}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           initialView={initialView}
@@ -134,15 +136,15 @@ export const ExerciseVisualBadge: React.FC<ExerciseVisualBadgeProps> = ({
           type="button"
           onClick={(e) => handleOpen('apparatus', e)}
           className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-800/60 text-emerald-300 text-[11px] font-medium transition-colors cursor-pointer"
-          title={`Ver foto del aparato: ${media.apparatus.name}`}
+          title={`Ver foto del aparato: ${apparatusName}`}
         >
           <Dumbbell className="w-2.5 h-2.5 text-emerald-400" />
-          <span className="truncate max-w-[130px]">{media.apparatus.name.split('(')[0].trim()}</span>
+          <span className="truncate max-w-[130px]">{apparatusShortName}</span>
         </button>
       </div>
 
       <ExerciseVisualModal
-        exerciseName={exerciseName}
+        exerciseName={exerciseName || ''}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         initialView={initialView}
