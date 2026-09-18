@@ -1,0 +1,6 @@
+{
+  "name": "Alfa & Omega Gym",
+  "description": "Aplicación oficial de Alfa & Omega Gym con control de acceso por sucursal (León, San Luis Potosí, Silao, Comanjilla), verificación estricta de pagos y bloqueo por adeudo, rutinas, historial biométrico y portal de administración.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

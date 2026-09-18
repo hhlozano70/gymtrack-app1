@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 380" width="100%" height="100%">
+  <defs>
+    <!-- Shadow filters for athletic pop -->
+    <filter id="gymTextGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- Group: Alpha and Omega graphic symbols -->
+  <g id="alfa-omega-symbols">
+    <!-- LEFT: Red Greek Alpha Loop (α) -->
+    <!-- Alpha Outer Ring & Tail -->
+    <path 
+      d="M 215 110 
+         C 185 60, 100 60, 65 110 
+         C 30 160, 30 230, 65 275 
+         C 100 320, 185 320, 220 270 
+         L 280 345
+         C 290 357, 308 350, 302 338
+         L 242 260
+         C 265 210, 255 145, 215 110 Z" 
+      fill="#DC2626" 
+    />
+    <!-- Cutout inner hole for the Alpha ring -->
+    <circle cx="140" cy="190" r="72" fill="#FFFFFF" />
+
+    <!-- Text inside Alpha: "ALFA" in athletic silver-gray -->
+    <text 
+      x="140" 
+      y="202" 
+      font-family="'Montserrat', 'Arial Black', -apple-system, sans-serif" 
+      font-size="44" 
+      font-weight="900" 
+      letter-spacing="2" 
+      fill="#8E99A8" 
+      text-anchor="middle"
+    >
+      ALFA
+    </text>
+
+    <!-- CENTER: Red Ampersand (&) -->
+    <text 
+      x="298" 
+      y="215" 
+      font-family="'Montserrat', 'Arial Black', -apple-system, sans-serif" 
+      font-size="120" 
+      font-weight="900" 
+      fill="#DC2626" 
+      text-anchor="middle"
+    >
+      &amp;
+    </text>
+
+    <!-- RIGHT: Gray Greek Omega (Ω) -->
+    <!-- Omega Outer Arch and horizontal feet -->
+    <path 
+      d="M 360 310 
+         L 415 310 
+         C 390 270, 380 230, 385 185 
+         C 395 115, 455 70, 520 70 
+         C 585 70, 645 115, 655 185 
+         C 660 230, 650 270, 625 310 
+         L 680 310
+         C 688 310, 690 330, 680 330
+         L 600 330
+         C 585 330, 575 315, 585 295
+         C 605 260, 615 220, 610 180
+         C 600 130, 560 105, 520 105
+         C 480 105, 440 130, 430 180
+         C 425 220, 435 260, 455 295
+         C 465 315, 455 330, 440 330
+         L 360 330
+         C 350 330, 350 310, 360 310 Z" 
+      fill="#8E99A8" 
+      transform="translate(-60, 0)"
+    />
+
+    <!-- Text inside Omega: "OMEGA" in crimson red -->
+    <text 
+      x="460" 
+      y="202" 
+      font-family="'Montserrat', 'Arial Black', -apple-system, sans-serif" 
+      font-size="38" 
+      font-weight="900" 
+      letter-spacing="1" 
+      fill="#DC2626" 
+      text-anchor="middle"
+    >
+      OMEGA
+    </text>
+  </g>
+
+  <!-- FOREGROUND: "GYM" Banner with Black Athletic font, Thick White Stroke, and Red Highlights -->
+  <g id="gym-text" filter="url(#gymTextGlow)">
+    <!-- Outer bold stroke outline -->
+    <text 
+      x="300" 
+      y="355" 
+      font-family="'Montserrat', 'Arial Black', Impact, sans-serif" 
+      font-size="115" 
+      font-weight="900" 
+      font-style="italic" 
+      letter-spacing="6" 
+      fill="#0F172A" 
+      stroke="#FFFFFF" 
+      stroke-width="18" 
+      stroke-linejoin="round" 
+      stroke-linecap="round" 
+      text-anchor="middle"
+    >
+      GYM
+    </text>
+
+    <!-- Secondary Red athletic shadow accent stroke -->
+    <text 
+      x="300" 
+      y="355" 
+      font-family="'Montserrat', 'Arial Black', Impact, sans-serif" 
+      font-size="115" 
+      font-weight="900" 
+      font-style="italic" 
+      letter-spacing="6" 
+      fill="none" 
+      stroke="#DC2626" 
+      stroke-width="4" 
+      stroke-linejoin="round" 
+      text-anchor="middle"
+    >
+      GYM
+    </text>
+
+    <!-- Inner black solid fill -->
+    <text 
+      x="300" 
+      y="355" 
+      font-family="'Montserrat', 'Arial Black', Impact, sans-serif" 
+      font-size="115" 
+      font-weight="900" 
+      font-style="italic" 
+      letter-spacing="6" 
+      fill="#0B0F19" 
+      text-anchor="middle"
+    >
+      GYM
+    </text>
+  </g>
+</svg>

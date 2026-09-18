@@ -1,0 +1,13 @@
+{
+  "appId": "com.gymtrackpro.app",
+  "appName": "GymTrack Pro",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#0f172a",
+    "allowMixedContent": true
+  }
+}

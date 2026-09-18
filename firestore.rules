@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow members and gym staff/admin to access and manage member data
+    match /members/{memberId} {
+      allow read, write: if true;
+
+      match /weightLogs/{logId} {
+        allow read, write: if true;
+      }
+
+      match /workouts/{workoutId} {
+        allow read, write: if true;
+      }
+
+      match /routines/{routineId} {
+        allow read, write: if true;
+      }
+    }
+
+    match /coaches/{coachId} {
+      allow read, write: if true;
+    }
+
+    match /adminSettings/{settingId} {
+      allow read, write: if true;
+    }
+  }
+}

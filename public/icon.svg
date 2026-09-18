@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="aoBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <filter id="aoGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#dc2626" flood-opacity="0.35"/>
+    </filter>
+    <filter id="gymTextGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Base background -->
+  <rect width="512" height="512" rx="112" fill="url(#aoBgGrad)" />
+
+  <!-- Subtle red/silver athletic border accent -->
+  <rect x="6" y="6" width="500" height="500" rx="106" fill="none" stroke="#dc2626" stroke-opacity="0.35" stroke-width="4" />
+
+  <!-- White Emblem Plaque -->
+  <rect x="36" y="70" width="440" height="300" rx="40" fill="#ffffff" filter="url(#aoGlow)" />
+
+  <!-- Scaled Alfa & Omega Emblem inside plaque -->
+  <g transform="translate(46, 60) scale(0.78)">
+    <!-- LEFT: Red Greek Alpha (α) -->
+    <path
+      d="M 195 95 
+         C 170 50, 95 50, 60 95 
+         C 25 140, 25 210, 60 255 
+         C 95 300, 170 300, 205 250 
+         L 260 320
+         C 268 330, 282 324, 277 314
+         L 225 242
+         C 245 195, 235 135, 195 95 Z"
+      fill="#DC2626"
+    />
+    <circle cx="128" cy="175" r="66" fill="#FFFFFF" />
+    <text
+      x="128"
+      y="187"
+      font-family="'Montserrat', 'Arial Black', -apple-system, sans-serif"
+      font-size="40"
+      font-weight="900"
+      letter-spacing="2"
+      fill="#71717A"
+      text-anchor="middle"
+    >
+      ALFA
+    </text>
+
+    <!-- CENTER: Red Ampersand (&) -->
+    <text
+      x="270"
+      y="198"
+      font-family="'Montserrat', 'Arial Black', -apple-system, sans-serif"
+      fontSize="110"
+      font-weight="900"
+      fill="#DC2626"
+      text-anchor="middle"
+    >
+      &amp;
+    </text>
+
+    <!-- RIGHT: Gray Greek Omega Arch (Ω) -->
+    <g transform="translate(-40, 0)">
+      <path
+        d="M 330 290 
+           L 380 290 
+           C 360 250, 350 215, 355 170 
+           C 365 105, 420 60, 480 60 
+           C 540 60, 595 105, 605 170 
+           C 610 215, 600 250, 580 290 
+           L 630 290
+           C 638 290, 640 308, 630 308
+           L 560 308
+           C 545 308, 538 295, 546 275
+           C 564 240, 572 205, 568 170
+           C 558 120, 520 95, 480 95
+           C 440 95, 402 120, 392 170
+           C 388 205, 396 240, 414 275
+           C 422 295, 415 308, 400 308
+           L 330 308
+           C 320 308, 320 290, 330 290 Z"
+        fill="#8E99A8"
+      />
+      <circle cx="480" cy="175" r="62" fill="#FFFFFF" />
+      <text
+        x="480"
+        y="186"
+        font-family="'Montserrat', 'Arial Black', -apple-system, sans-serif"
+        font-size="34"
+        font-weight="900"
+        letter-spacing="1"
+        fill="#DC2626"
+        text-anchor="middle"
+      >
+        OMEGA
+      </text>
+    </g>
+
+    <!-- FOREGROUND: Slanted "GYM" -->
+    <g filter="url(#gymTextGlow)">
+      <text
+        x="270"
+        y="325"
+        font-family="'Montserrat', 'Arial Black', Impact, sans-serif"
+        font-size="115"
+        font-weight="900"
+        font-style="italic"
+        letter-spacing="6"
+        fill="#09090B"
+        stroke="#FFFFFF"
+        stroke-width="18"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        text-anchor="middle"
+      >
+        GYM
+      </text>
+      <text
+        x="270"
+        y="325"
+        font-family="'Montserrat', 'Arial Black', Impact, sans-serif"
+        font-size="115"
+        font-weight="900"
+        font-style="italic"
+        letter-spacing="6"
+        fill="none"
+        stroke="#DC2626"
+        stroke-width="4"
+        stroke-linejoin="round"
+        text-anchor="middle"
+      >
+        GYM
+      </text>
+      <text
+        x="270"
+        y="325"
+        font-family="'Montserrat', 'Arial Black', Impact, sans-serif"
+        font-size="115"
+        font-weight="900"
+        font-style="italic"
+        letter-spacing="6"
+        fill="#09090B"
+        text-anchor="middle"
+      >
+        GYM
+      </text>
+    </g>
+  </g>
+
+  <!-- Bottom Brand Text Badge -->
+  <rect x="116" y="396" width="280" height="46" rx="23" fill="#dc2626" />
+  <text x="256" y="425" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="900" letter-spacing="3" text-anchor="middle">ALFA &amp; OMEGA</text>
+</svg>

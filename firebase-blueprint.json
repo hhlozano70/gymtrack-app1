@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "members": {
+      "title": "Gym Members",
+      "description": "Registered gym members with their membership codes, passwords, and personal health metrics.",
+      "type": "object",
+      "properties": {
+        "membershipNumber": { "type": "string" },
+        "name": { "type": "string" },
+        "password": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "emergencyContact": { "type": "string" },
+        "age": { "type": "number" },
+        "height": { "type": "number" },
+        "currentWeight": { "type": "number" },
+        "targetWeight": { "type": "number" },
+        "goal": { "type": "string" },
+        "coachId": { "type": "string" },
+        "coachName": { "type": "string" },
+        "notes": { "type": "string" },
+        "role": { "type": "string", "enum": ["member", "admin"] },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "joinedDate": { "type": "string" },
+        "expiresDate": { "type": "string" }
+      },
+      "required": ["membershipNumber", "name", "password"]
+    },
+    "coaches": {
+      "title": "Gym Coaches",
+      "description": "Alfa & Omega Gym official certified trainers and coaches.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "specialty": { "type": "string" },
+        "experience": { "type": "string" },
+        "schedule": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "bio": { "type": "string" },
+        "avatar": { "type": "string" },
+        "available": { "type": "boolean" }
+      },
+      "required": ["name", "title", "specialty"]
+    }
+  },
+  "rules": "firestore.rules"
+}
