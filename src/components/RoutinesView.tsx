@@ -23,6 +23,7 @@ export const RoutinesView: React.FC<RoutinesViewProps> = ({
   onDeleteRoutine,
   onNavigateToAiGenerator,
   onNavigateToApparatusGuide,
+  onOpenAndroidModal,
   defaultWeightKg = 75,
 }) => {
   const [selectedGoal, setSelectedGoal] = useState<string>('all');
