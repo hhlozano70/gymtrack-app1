@@ -77,12 +77,12 @@ export const MemberProfileView: React.FC<MemberProfileViewProps> = ({
   const bmiInfo = getBmiCategory(parseFloat(bmi));
 
   // Progress calculations
-  const weightChange = (member.currentWeight - member.initialWeight).toFixed(1);
-  const totalVolumeKg = workoutLogs.reduce((acc, curr) => acc + (curr.totalVolumeKg || 0), 0);
-  const totalCalories = workoutLogs.reduce((acc, curr) => acc + (curr.caloriesBurned || 0), 0);
+  const weightChange = ((member.currentWeight || 75) - (member.initialWeight || member.currentWeight || 75)).toFixed(1);
+  const totalVolumeKg = (workoutLogs || []).reduce((acc, curr) => acc + (curr.totalVolumeKg || 0), 0);
+  const totalCalories = (workoutLogs || []).reduce((acc, curr) => acc + (curr.caloriesBurned || 0), 0);
 
   // Membership expiry check
-  const expireDate = new Date(member.expiresDate);
+  const expireDate = member.expiresDate ? new Date(member.expiresDate) : new Date(Date.now() + 30 * 24 * 3600 * 1000);
   const now = new Date();
   const diffDays = Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
   const isExpiringSoon = diffDays > 0 && diffDays <= 15;

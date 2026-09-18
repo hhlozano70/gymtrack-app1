@@ -290,7 +290,7 @@ export const InitialAccessPortal: React.FC<InitialAccessPortalProps> = ({
               const bMembers = members.filter((m) => m.branch === b);
               const paidCount = bMembers.filter((m) => !isMemberPaymentOverdue(m)).length;
               const overdueCount = bMembers.length - paidCount;
-              const details = BRANCH_DETAILS[b];
+              const details = BRANCH_DETAILS[b] || { address: 'Dirección oficial', phone: 'Recepción', manager: 'Staff Alfa & Omega' };
 
               return (
                 <div
@@ -388,7 +388,7 @@ export const InitialAccessPortal: React.FC<InitialAccessPortalProps> = ({
                   </span>
                 </div>
                 <span className="text-[10px] text-slate-400 block truncate mt-0.5">
-                  {BRANCH_DETAILS[selectedBranch].address}
+                  {BRANCH_DETAILS[selectedBranch]?.address || ''}
                 </span>
               </div>
             </div>
