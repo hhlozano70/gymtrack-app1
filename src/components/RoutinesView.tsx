@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Routine, RoutineExercise } from '../types';
-import { Play, Plus, Dumbbell, Flame, Clock, Trash2, Filter, Sparkles, ChevronRight, X, Smartphone, Eye } from 'lucide-react';
+import { Play, Plus, Dumbbell, Flame, Clock, Trash2, Filter, Sparkles, ChevronRight, X, Smartphone, Eye, Sliders } from 'lucide-react';
 import { ExerciseVisualBadge } from './ExerciseVisualBadge';
 import { AlfaOmegaLogo } from './AlfaOmegaLogo';
+import { CustomRoutineBuilderModal } from './CustomRoutineBuilderModal';
 
 interface RoutinesViewProps {
   routines: Routine[];
@@ -12,6 +13,7 @@ interface RoutinesViewProps {
   onNavigateToAiGenerator: () => void;
   onNavigateToApparatusGuide?: () => void;
   onOpenAndroidModal?: () => void;
+  defaultWeightKg?: number;
 }
 
 export const RoutinesView: React.FC<RoutinesViewProps> = ({
@@ -21,96 +23,15 @@ export const RoutinesView: React.FC<RoutinesViewProps> = ({
   onDeleteRoutine,
   onNavigateToAiGenerator,
   onNavigateToApparatusGuide,
-  onOpenAndroidModal,
+  defaultWeightKg = 75,
 }) => {
   const [selectedGoal, setSelectedGoal] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
-
-  // New Routine Form State
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [goal, setGoal] = useState<Routine['goal']>('Quema de Grasa');
-  const [difficulty, setDifficulty] = useState<Routine['difficulty']>('Intermedio');
-  const [durationMinutes, setDurationMinutes] = useState(45);
-  const [estimatedCalories, setEstimatedCalories] = useState(450);
-  const [exercisesList, setExercisesList] = useState<
-    { name: string; muscle: string; sets: number; reps: string; rest: number }[]
-  >([
-    { name: 'Sentadilla Goblet', muscle: 'Piernas', sets: 4, reps: '12-15', rest: 45 },
-    { name: 'Press Banca con Mancuernas', muscle: 'Pecho', sets: 4, reps: '10-12', rest: 60 },
-  ]);
-
-  // Temporary exercise adder inside create modal
-  const [tempExName, setTempExName] = useState('');
-  const [tempMuscle, setTempMuscle] = useState('Piernas');
-  const [tempSets, setTempSets] = useState(4);
-  const [tempReps, setTempReps] = useState('12');
-  const [tempRest, setTempRest] = useState(60);
 
   const filteredRoutines = routines.filter((r) => {
     if (selectedGoal === 'all') return true;
     return r.goal === selectedGoal;
   });
-
-  const handleAddExerciseToForm = () => {
-    if (!tempExName.trim()) return;
-    setExercisesList([
-      ...exercisesList,
-      {
-        name: tempExName.trim(),
-        muscle: tempMuscle,
-        sets: tempSets,
-        reps: tempReps,
-        rest: tempRest,
-      },
-    ]);
-    setTempExName('');
-  };
-
-  const handleRemoveExerciseFromForm = (idx: number) => {
-    setExercisesList(exercisesList.filter((_, i) => i !== idx));
-  };
-
-  const handleSaveRoutine = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || exercisesList.length === 0) return;
-
-    const newRoutine: Routine = {
-      id: `custom-r-${Date.now()}`,
-      name: name.trim(),
-      description: description.trim() || 'Rutina personalizada creada por el usuario.',
-      goal,
-      difficulty,
-      durationMinutes,
-      estimatedCalories,
-      isCustom: true,
-      exercises: exercisesList.map((item, i) => ({
-        exerciseId: `ex-${i}-${Date.now()}`,
-        exerciseName: item.name,
-        muscleGroup: item.muscle,
-        targetSets: item.sets,
-        targetReps: item.reps,
-        suggestedRestSeconds: item.rest,
-        sets: Array.from({ length: item.sets }).map((_, sIdx) => ({
-          id: `s-${i}-${sIdx}`,
-          setNumber: sIdx + 1,
-          weight: 20,
-          reps: parseInt(item.reps.split('-')[0]) || 12,
-          completed: false,
-        })),
-      })),
-    };
-
-    onCreateRoutine(newRoutine);
-    setShowCreateModal(false);
-
-    // Reset form
-    setName('');
-    setDescription('');
-    setExercisesList([
-      { name: 'Sentadilla Goblet', muscle: 'Piernas', sets: 4, reps: '12-15', rest: 45 },
-    ]);
-  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -335,234 +256,19 @@ export const RoutinesView: React.FC<RoutinesViewProps> = ({
         ))}
       </div>
 
-      {/* Modal: Create Custom Routine */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 font-['Space_Grotesk']">
-                  Crear Rutina Personalizada
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Configura tus ejercicios, series, repeticiones y descansos.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveRoutine} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                  Nombre de la Rutina *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="ej. Pierna & Acondicionamiento Metabólico"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-emerald-500 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-                  Descripción Corta
-                </label>
-                <input
-                  type="text"
-                  placeholder="ej. Enfoque en sentadillas, zancadas y quemador con salto de comba"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-emerald-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
-                    Objetivo
-                  </label>
-                  <select
-                    value={goal}
-                    onChange={(e) => setGoal(e.target.value as any)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
-                  >
-                    <option value="Quema de Grasa">Quema Grasa</option>
-                    <option value="Hipertrofia">Hipertrofia</option>
-                    <option value="Fuerza">Fuerza</option>
-                    <option value="Resistencia">Resistencia</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
-                    Nivel
-                  </label>
-                  <select
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as any)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
-                  >
-                    <option value="Principiante">Principiante</option>
-                    <option value="Intermedio">Intermedio</option>
-                    <option value="Avanzado">Avanzado</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
-                    Minutos
-                  </label>
-                  <input
-                    type="number"
-                    value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 45)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
-                    Kcal Estimadas
-                  </label>
-                  <input
-                    type="number"
-                    value={estimatedCalories}
-                    onChange={(e) => setEstimatedCalories(parseInt(e.target.value) || 450)}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-emerald-600"
-                  />
-                </div>
-              </div>
-
-              {/* Exercises List inside Form */}
-              <div className="pt-2">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold uppercase text-slate-700">
-                    Ejercicios Incluidos ({exercisesList.length})
-                  </label>
-                </div>
-
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {exercisesList.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                    >
-                      <div>
-                        <span className="font-bold text-slate-900">{item.name}</span>
-                        <span className="text-slate-400 ml-2 font-mono">
-                          {item.sets} series x {item.reps} ({item.rest}s descanso)
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveExerciseFromForm(idx)}
-                        className="p-1 text-slate-400 hover:text-rose-600"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Sub-form to add exercise */}
-                <div className="mt-3 p-3 bg-slate-100/80 rounded-xl border border-slate-200 space-y-2.5">
-                  <span className="text-[11px] font-bold text-slate-600 block">
-                    Añadir Ejercicio a la Lista:
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Nombre del ejercicio..."
-                      value={tempExName}
-                      onChange={(e) => setTempExName(e.target.value)}
-                      className="col-span-2 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs"
-                    />
-                    <select
-                      value={tempMuscle}
-                      onChange={(e) => setTempMuscle(e.target.value)}
-                      className="px-2 py-1.5 rounded-lg bg-white border border-slate-300 text-xs"
-                    >
-                      <option value="Piernas">Piernas</option>
-                      <option value="Pecho">Pecho</option>
-                      <option value="Espalda">Espalda</option>
-                      <option value="Hombros">Hombros</option>
-                      <option value="Brazos">Brazos</option>
-                      <option value="Core">Core</option>
-                      <option value="Cardio">Cardio</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 text-xs">
-                      <span className="text-slate-500">Series:</span>
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={tempSets}
-                        onChange={(e) => setTempSets(parseInt(e.target.value) || 4)}
-                        className="w-12 px-1.5 py-1 rounded border border-slate-300 text-center font-mono text-xs"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 text-xs">
-                      <span className="text-slate-500">Reps:</span>
-                      <input
-                        type="text"
-                        value={tempReps}
-                        onChange={(e) => setTempReps(e.target.value)}
-                        className="w-16 px-1.5 py-1 rounded border border-slate-300 text-center font-mono text-xs"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 text-xs">
-                      <span className="text-slate-500">Descanso:</span>
-                      <input
-                        type="number"
-                        step="5"
-                        value={tempRest}
-                        onChange={(e) => setTempRest(parseInt(e.target.value) || 45)}
-                        className="w-14 px-1.5 py-1 rounded border border-slate-300 text-center font-mono text-xs"
-                      />
-                      <span className="text-slate-400">s</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleAddExerciseToForm}
-                      className="ml-auto px-3 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-lg hover:bg-emerald-500"
-                    >
-                      Agregar
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-md"
-                >
-                  Guardar Rutina
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Custom Routine Builder with Apparatus and Real-Time Calorie Calculation */}
+      <CustomRoutineBuilderModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSaveRoutine={(routine, startImmediately) => {
+          onCreateRoutine(routine);
+          if (startImmediately) {
+            onStartWorkout(routine);
+          }
+        }}
+        defaultWeightKg={defaultWeightKg}
+        onNavigateToApparatusGuide={onNavigateToApparatusGuide}
+      />
     </div>
   );
 };

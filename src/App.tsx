@@ -552,6 +552,7 @@ export default function App() {
             onNavigateToAiGenerator={() => setActiveTab('calorie_recommend')}
             onNavigateToApparatusGuide={() => setActiveTab('apparatus')}
             onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
+            defaultWeightKg={profile.currentWeight || currentMember?.currentWeight || 75}
           />
         )}
 
