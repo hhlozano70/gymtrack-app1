@@ -255,8 +255,22 @@ Devuelve EXCLUSIVAMENTE un JSON válido con la siguiente estructura:
 });
 
 async function startServer() {
-  const distPath = path.join(process.cwd(), "dist");
-  const hasDist = fs.existsSync(path.join(distPath, "index.html"));
+  const distCandidates = [
+    path.join(__dirname, "index.html"),
+    path.join(__dirname, "dist", "index.html"),
+    path.join(process.cwd(), "dist", "index.html"),
+    path.join(__dirname, "..", "dist", "index.html"),
+  ];
+
+  let distPath = "";
+  for (const candidate of distCandidates) {
+    if (fs.existsSync(candidate)) {
+      distPath = path.dirname(candidate);
+      break;
+    }
+  }
+
+  const hasDist = Boolean(distPath);
 
   if (!hasDist || process.env.NODE_ENV === "development") {
     const vite = await createViteServer({
@@ -272,7 +286,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT} (dist: ${distPath || "vite-dev"})`);
   });
 }
 
