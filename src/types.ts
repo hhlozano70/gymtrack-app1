@@ -36,6 +36,9 @@ export interface Routine {
   goal: 'Quema de Grasa' | 'Hipertrofia' | 'Fuerza' | 'Resistencia';
   exercises: RoutineExercise[];
   isCustom?: boolean;
+  memberId?: string;
+  createdBy?: string;
+  createdAt?: string;
 }
 
 export interface WorkoutSession {

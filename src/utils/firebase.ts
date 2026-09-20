@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 import { Member, GymCoach, WeightEntry, WorkoutSession, Routine, CoachConsultation } from '../types';
+import { INITIAL_ROUTINES } from './storage';
 
 let app: FirebaseApp;
 let db: Firestore;
@@ -1068,3 +1069,230 @@ export function setAdminPassword(newPwd: string): void {
     console.error(e);
   }
 }
+
+// STORAGE KEYS FOR CLOUD-SYNCED OBJECTS
+const LS_ROUTINES_KEY = 'gymtrack_routines_v1';
+
+// --- ROUTINES CLOUD REPOSITORY ---
+export async function fetchRoutinesFromDb(): Promise<Routine[]> {
+  if (db) {
+    try {
+      const snap = await getDocs(collection(db, 'routines'));
+      if (!snap.empty) {
+        const list: Routine[] = [];
+        snap.forEach((d) => list.push({ ...d.data(), id: d.id } as Routine));
+
+        // Ensure default seeded routines are present
+        for (const initR of INITIAL_ROUTINES) {
+          if (!list.some((r) => r.id === initR.id)) {
+            list.push(initR);
+            setDoc(doc(db, 'routines', initR.id), initR).catch(console.warn);
+          }
+        }
+
+        // Also check if there are any locally created custom routines not yet in cloud
+        try {
+          const cached = localStorage.getItem(LS_ROUTINES_KEY);
+          if (cached) {
+            const localList: Routine[] = JSON.parse(cached);
+            for (const locR of localList) {
+              if (locR.isCustom && !list.some((r) => r.id === locR.id)) {
+                list.unshift(locR);
+                setDoc(doc(db, 'routines', locR.id), locR).catch(console.warn);
+              }
+            }
+          }
+        } catch {}
+
+        localStorage.setItem(LS_ROUTINES_KEY, JSON.stringify(list));
+        return list;
+      } else {
+        // Seed default routines to Firestore
+        for (const r of INITIAL_ROUTINES) {
+          await setDoc(doc(db, 'routines', r.id), r);
+        }
+        localStorage.setItem(LS_ROUTINES_KEY, JSON.stringify(INITIAL_ROUTINES));
+        return INITIAL_ROUTINES;
+      }
+    } catch (err) {
+      console.warn('Firestore fetch routines notice, using local cache:', err);
+    }
+  }
+
+  // Fallback to localStorage
+  try {
+    const cached = localStorage.getItem(LS_ROUTINES_KEY);
+    return cached ? JSON.parse(cached) : INITIAL_ROUTINES;
+  } catch {
+    return INITIAL_ROUTINES;
+  }
+}
+
+export async function saveRoutineToDb(routine: Routine): Promise<void> {
+  // Update local storage first
+  try {
+    const list = await fetchRoutinesFromDb();
+    const idx = list.findIndex((r) => r.id === routine.id);
+    if (idx >= 0) {
+      list[idx] = routine;
+    } else {
+      list.unshift(routine);
+    }
+    localStorage.setItem(LS_ROUTINES_KEY, JSON.stringify(list));
+  } catch (e) {
+    console.error('Local cache error for routine:', e);
+  }
+
+  // Persist to Cloud Firestore
+  if (db) {
+    try {
+      await setDoc(doc(db, 'routines', routine.id), routine, { merge: true });
+    } catch (err) {
+      console.warn('Firestore write routine notice:', err);
+    }
+  }
+}
+
+export async function deleteRoutineFromDb(routineId: string): Promise<void> {
+  try {
+    const list = await fetchRoutinesFromDb();
+    const filtered = list.filter((r) => r.id !== routineId);
+    localStorage.setItem(LS_ROUTINES_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.error(e);
+  }
+
+  if (db) {
+    try {
+      await deleteDoc(doc(db, 'routines', routineId));
+    } catch (err) {
+      console.warn('Firestore delete routine notice:', err);
+    }
+  }
+}
+
+export function subscribeToRoutinesFromDb(callback: (routines: Routine[]) => void): () => void {
+  if (!db) return () => {};
+  try {
+    const unsubscribe = onSnapshot(
+      collection(db, 'routines'),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const list: Routine[] = [];
+          snapshot.forEach((d) => list.push({ ...d.data(), id: d.id } as Routine));
+          localStorage.setItem(LS_ROUTINES_KEY, JSON.stringify(list));
+          callback(list);
+        }
+      },
+      (error) => {
+        console.warn('Realtime routines listener notice:', error);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.warn('Subscribe routines notice:', err);
+    return () => {};
+  }
+}
+
+// --- MEMBER WORKOUTS & WEIGHT LOGS CLOUD SYNC ---
+export async function fetchMemberWorkoutLogsFromDb(memberId: string): Promise<WorkoutSession[]> {
+  if (!memberId) return [];
+  const memberKey = `gymtrack_workout_logs_${memberId}`;
+  if (db) {
+    try {
+      const snap = await getDocs(collection(db, 'members', memberId, 'workouts'));
+      if (!snap.empty) {
+        const list: WorkoutSession[] = [];
+        snap.forEach((d) => list.push({ ...d.data(), id: d.id } as WorkoutSession));
+        localStorage.setItem(memberKey, JSON.stringify(list));
+        return list;
+      }
+    } catch (err) {
+      console.warn('Firestore workout logs fetch notice:', err);
+    }
+  }
+  try {
+    const cached = localStorage.getItem(memberKey);
+    return cached ? JSON.parse(cached) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveMemberWorkoutLogToDb(memberId: string, session: WorkoutSession): Promise<void> {
+  if (!memberId) return;
+  const memberKey = `gymtrack_workout_logs_${memberId}`;
+  try {
+    const cached = localStorage.getItem(memberKey);
+    const list: WorkoutSession[] = cached ? JSON.parse(cached) : [];
+    const idx = list.findIndex((s) => s.id === session.id);
+    if (idx >= 0) {
+      list[idx] = session;
+    } else {
+      list.unshift(session);
+    }
+    localStorage.setItem(memberKey, JSON.stringify(list));
+  } catch (e) {
+    console.error(e);
+  }
+
+  if (db) {
+    try {
+      await setDoc(doc(db, 'members', memberId, 'workouts', session.id), session, { merge: true });
+    } catch (err) {
+      console.warn('Firestore workout save notice:', err);
+    }
+  }
+}
+
+export async function fetchMemberWeightLogsFromDb(memberId: string): Promise<WeightEntry[]> {
+  if (!memberId) return [];
+  const memberKey = `gymtrack_weight_logs_${memberId}`;
+  if (db) {
+    try {
+      const snap = await getDocs(collection(db, 'members', memberId, 'weights'));
+      if (!snap.empty) {
+        const list: WeightEntry[] = [];
+        snap.forEach((d) => list.push({ ...d.data(), id: d.id } as WeightEntry));
+        localStorage.setItem(memberKey, JSON.stringify(list));
+        return list;
+      }
+    } catch (err) {
+      console.warn('Firestore weight logs fetch notice:', err);
+    }
+  }
+  try {
+    const cached = localStorage.getItem(memberKey);
+    return cached ? JSON.parse(cached) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveMemberWeightLogToDb(memberId: string, entry: WeightEntry): Promise<void> {
+  if (!memberId) return;
+  const memberKey = `gymtrack_weight_logs_${memberId}`;
+  try {
+    const cached = localStorage.getItem(memberKey);
+    const list: WeightEntry[] = cached ? JSON.parse(cached) : [];
+    const idx = list.findIndex((w) => w.id === entry.id);
+    if (idx >= 0) {
+      list[idx] = entry;
+    } else {
+      list.push(entry);
+    }
+    localStorage.setItem(memberKey, JSON.stringify(list));
+  } catch (e) {
+    console.error(e);
+  }
+
+  if (db) {
+    try {
+      await setDoc(doc(db, 'members', memberId, 'weights', entry.id), entry, { merge: true });
+    } catch (err) {
+      console.warn('Firestore weight save notice:', err);
+    }
+  }
+}
+

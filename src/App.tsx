@@ -38,6 +38,14 @@ import {
   fetchConsultationsFromDb,
   saveConsultationToDb,
   seed20DemoMembers,
+  fetchRoutinesFromDb,
+  saveRoutineToDb,
+  deleteRoutineFromDb,
+  subscribeToRoutinesFromDb,
+  fetchMemberWorkoutLogsFromDb,
+  saveMemberWorkoutLogToDb,
+  fetchMemberWeightLogsFromDb,
+  saveMemberWeightLogToDb,
 } from './utils/firebase';
 import { exportGymDataToPDF } from './utils/pdfExport';
 import { audioManager } from './utils/audio';
@@ -98,15 +106,19 @@ export default function App() {
   useEffect(() => {
     async function loadDatabase() {
       try {
-        const [loadedMembers, loadedCoaches, loadedConsults] = await Promise.all([
+        const [loadedMembers, loadedCoaches, loadedConsults, loadedRoutines] = await Promise.all([
           fetchMembersFromDb(),
           fetchCoachesFromDb(),
           fetchConsultationsFromDb(),
+          fetchRoutinesFromDb(),
         ]);
 
         setMembers(loadedMembers);
         setCoaches(loadedCoaches);
         setConsultations(loadedConsults);
+        if (loadedRoutines && loadedRoutines.length > 0) {
+          setRoutines(loadedRoutines);
+        }
 
         // Check if there is an active session in localStorage
         const savedRole = localStorage.getItem('ao_session_role') as 'member' | 'coach' | 'admin' | null;
@@ -130,6 +142,14 @@ export default function App() {
             const memberWeights = getMemberWeightLogs(found.id, found.currentWeight, found.joinedDate);
             setWorkoutLogs(memberWorkouts);
             setWeightLogs(memberWeights);
+
+            // Fetch cloud workout & weight logs if available
+            fetchMemberWorkoutLogsFromDb(found.id).then((cloudW) => {
+              if (cloudW && cloudW.length > 0) setWorkoutLogs(cloudW);
+            }).catch(console.warn);
+            fetchMemberWeightLogsFromDb(found.id).then((cloudWeights) => {
+              if (cloudWeights && cloudWeights.length > 0) setWeightLogs(cloudWeights);
+            }).catch(console.warn);
           } else if (found && isMemberPaymentOverdue(found)) {
             // Payment is overdue, clear session so portal requires settlement
             localStorage.removeItem('ao_session_role');
@@ -153,6 +173,16 @@ export default function App() {
       }
     }
     loadDatabase();
+  }, []);
+
+  // Real-time Cloud Synchronization for Routines
+  useEffect(() => {
+    const unsubscribe = subscribeToRoutinesFromDb((cloudRoutines) => {
+      if (cloudRoutines && cloudRoutines.length > 0) {
+        setRoutines(cloudRoutines);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   // Sync state to storage
@@ -234,11 +264,19 @@ export default function App() {
       goal: member.goal,
     }));
 
-    // Member-isolated workouts and weight logs
+    // Member-isolated workouts and weight logs (local cache + cloud sync)
     const memberWorkouts = getMemberWorkoutLogs(member.id);
     const memberWeights = getMemberWeightLogs(member.id, member.currentWeight, member.joinedDate);
     setWorkoutLogs(memberWorkouts);
     setWeightLogs(memberWeights);
+
+    // Sync cloud workouts & weights if available
+    fetchMemberWorkoutLogsFromDb(member.id).then((cloudW) => {
+      if (cloudW && cloudW.length > 0) setWorkoutLogs(cloudW);
+    }).catch(console.warn);
+    fetchMemberWeightLogsFromDb(member.id).then((cloudWeights) => {
+      if (cloudWeights && cloudWeights.length > 0) setWeightLogs(cloudWeights);
+    }).catch(console.warn);
 
     setActiveTab('profile');
   };
@@ -371,7 +409,7 @@ export default function App() {
     setIsWorkoutModalOpen(true);
   };
 
-  const handleFinishWorkout = (session: WorkoutSession) => {
+  const handleFinishWorkout = async (session: WorkoutSession) => {
     const sessionWithMember: WorkoutSession = {
       ...session,
       memberId: currentMember?.id || 'guest',
@@ -385,6 +423,9 @@ export default function App() {
       }
       return updated;
     });
+    if (currentMember) {
+      await saveMemberWorkoutLogToDb(currentMember.id, sessionWithMember);
+    }
     setIsWorkoutModalOpen(false);
     setActiveWorkoutRoutine(null);
     setActiveTab('progress');
@@ -408,6 +449,7 @@ export default function App() {
     setWeightLogs(updated);
     if (currentMember) {
       saveMemberWeightLogs(updated, currentMember.id);
+      await saveMemberWeightLogToDb(currentMember.id, newEntry);
     } else {
       saveStoredWeightLogs(updated);
     }
@@ -440,17 +482,20 @@ export default function App() {
     }
   };
 
-  // Routines Handlers
-  const handleCreateRoutine = (newRoutine: Routine) => {
+  // Routines Handlers (Synchronized with Cloud Firestore & local cache)
+  const handleCreateRoutine = async (newRoutine: Routine) => {
     setRoutines((prev) => [newRoutine, ...prev]);
+    await saveRoutineToDb(newRoutine);
   };
 
-  const handleDeleteRoutine = (id: string) => {
+  const handleDeleteRoutine = async (id: string) => {
     setRoutines((prev) => prev.filter((r) => r.id !== id));
+    await deleteRoutineFromDb(id);
   };
 
-  const handleApplyAiRoutine = (newRoutine: Routine) => {
+  const handleApplyAiRoutine = async (newRoutine: Routine) => {
     setRoutines((prev) => [newRoutine, ...prev]);
+    await saveRoutineToDb(newRoutine);
     setActiveTab('routines');
   };
 
