@@ -1072,12 +1072,13 @@ export function setAdminPassword(newPwd: string): void {
 
 // STORAGE KEYS FOR CLOUD-SYNCED OBJECTS
 const LS_ROUTINES_KEY = 'gymtrack_routines_v1';
+const ROUTINES_PARENT_DOC = 'shared_routines_hub';
 
 // --- ROUTINES CLOUD REPOSITORY ---
 export async function fetchRoutinesFromDb(): Promise<Routine[]> {
   if (db) {
     try {
-      const snap = await getDocs(collection(db, 'routines'));
+      const snap = await getDocs(collection(db, 'members', ROUTINES_PARENT_DOC, 'routines'));
       if (!snap.empty) {
         const list: Routine[] = [];
         snap.forEach((d) => list.push({ ...d.data(), id: d.id } as Routine));
@@ -1086,7 +1087,7 @@ export async function fetchRoutinesFromDb(): Promise<Routine[]> {
         for (const initR of INITIAL_ROUTINES) {
           if (!list.some((r) => r.id === initR.id)) {
             list.push(initR);
-            setDoc(doc(db, 'routines', initR.id), initR).catch(console.warn);
+            setDoc(doc(db, 'members', ROUTINES_PARENT_DOC, 'routines', initR.id), initR).catch(console.warn);
           }
         }
 
@@ -1098,7 +1099,7 @@ export async function fetchRoutinesFromDb(): Promise<Routine[]> {
             for (const locR of localList) {
               if (locR.isCustom && !list.some((r) => r.id === locR.id)) {
                 list.unshift(locR);
-                setDoc(doc(db, 'routines', locR.id), locR).catch(console.warn);
+                setDoc(doc(db, 'members', ROUTINES_PARENT_DOC, 'routines', locR.id), locR).catch(console.warn);
               }
             }
           }
@@ -1109,7 +1110,7 @@ export async function fetchRoutinesFromDb(): Promise<Routine[]> {
       } else {
         // Seed default routines to Firestore
         for (const r of INITIAL_ROUTINES) {
-          await setDoc(doc(db, 'routines', r.id), r);
+          await setDoc(doc(db, 'members', ROUTINES_PARENT_DOC, 'routines', r.id), r);
         }
         localStorage.setItem(LS_ROUTINES_KEY, JSON.stringify(INITIAL_ROUTINES));
         return INITIAL_ROUTINES;
@@ -1146,7 +1147,7 @@ export async function saveRoutineToDb(routine: Routine): Promise<void> {
   // Persist to Cloud Firestore
   if (db) {
     try {
-      await setDoc(doc(db, 'routines', routine.id), routine, { merge: true });
+      await setDoc(doc(db, 'members', ROUTINES_PARENT_DOC, 'routines', routine.id), routine, { merge: true });
     } catch (err) {
       console.warn('Firestore write routine notice:', err);
     }
@@ -1164,7 +1165,7 @@ export async function deleteRoutineFromDb(routineId: string): Promise<void> {
 
   if (db) {
     try {
-      await deleteDoc(doc(db, 'routines', routineId));
+      await deleteDoc(doc(db, 'members', ROUTINES_PARENT_DOC, 'routines', routineId));
     } catch (err) {
       console.warn('Firestore delete routine notice:', err);
     }
@@ -1175,7 +1176,7 @@ export function subscribeToRoutinesFromDb(callback: (routines: Routine[]) => voi
   if (!db) return () => {};
   try {
     const unsubscribe = onSnapshot(
-      collection(db, 'routines'),
+      collection(db, 'members', ROUTINES_PARENT_DOC, 'routines'),
       (snapshot) => {
         if (!snapshot.empty) {
           const list: Routine[] = [];
@@ -1251,7 +1252,7 @@ export async function fetchMemberWeightLogsFromDb(memberId: string): Promise<Wei
   const memberKey = `gymtrack_weight_logs_${memberId}`;
   if (db) {
     try {
-      const snap = await getDocs(collection(db, 'members', memberId, 'weights'));
+      const snap = await getDocs(collection(db, 'members', memberId, 'weightLogs'));
       if (!snap.empty) {
         const list: WeightEntry[] = [];
         snap.forEach((d) => list.push({ ...d.data(), id: d.id } as WeightEntry));
@@ -1289,7 +1290,7 @@ export async function saveMemberWeightLogToDb(memberId: string, entry: WeightEnt
 
   if (db) {
     try {
-      await setDoc(doc(db, 'members', memberId, 'weights', entry.id), entry, { merge: true });
+      await setDoc(doc(db, 'members', memberId, 'weightLogs', entry.id), entry, { merge: true });
     } catch (err) {
       console.warn('Firestore weight save notice:', err);
     }
