@@ -15,6 +15,7 @@ import { AdminPortalModal } from './components/AdminPortalModal';
 import { ActiveWorkoutModal } from './components/ActiveWorkoutModal';
 import { QuickTimerFloater } from './components/QuickTimerFloater';
 import { AndroidInstallModal } from './components/AndroidInstallModal';
+import { Dumbbell, Play, Trash2, Flame } from 'lucide-react';
 import {
   getStoredRoutines,
   saveStoredRoutines,
@@ -28,6 +29,9 @@ import {
   saveMemberWorkoutLogs,
   getMemberWeightLogs,
   saveMemberWeightLogs,
+  getActiveWorkoutDraft,
+  clearActiveWorkoutDraft,
+  ActiveWorkoutDraft,
 } from './utils/storage';
 import {
   fetchMembersFromDb,
@@ -89,8 +93,15 @@ export default function App() {
   const [isWorkoutModalOpen, setIsWorkoutModalOpen] = useState(false);
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
 
-  // Active workout session state
+  // Active workout session state & persistent draft
   const [activeWorkoutRoutine, setActiveWorkoutRoutine] = useState<Routine | null>(null);
+  const [activeDraft, setActiveDraft] = useState<ActiveWorkoutDraft | null>(() => getActiveWorkoutDraft());
+
+  // Keep activeDraft updated whenever modal opens/closes or member changes
+  useEffect(() => {
+    const draft = getActiveWorkoutDraft(currentMember?.id);
+    setActiveDraft(draft);
+  }, [currentMember, isWorkoutModalOpen]);
 
   // Global Quick Rest Timer
   const [restSecondsLeft, setRestSecondsLeft] = useState(0);
@@ -410,6 +421,9 @@ export default function App() {
   };
 
   const handleFinishWorkout = async (session: WorkoutSession) => {
+    clearActiveWorkoutDraft(currentMember?.id);
+    setActiveDraft(null);
+
     const sessionWithMember: WorkoutSession = {
       ...session,
       memberId: currentMember?.id || 'guest',
@@ -432,8 +446,23 @@ export default function App() {
   };
 
   const handleCancelWorkout = () => {
-    if (window.confirm('¿Seguro que deseas salir del entrenamiento en curso?')) {
-      setIsWorkoutModalOpen(false);
+    setIsWorkoutModalOpen(false);
+    const draft = getActiveWorkoutDraft(currentMember?.id);
+    setActiveDraft(draft);
+  };
+
+  const handleResumeWorkout = () => {
+    const draft = getActiveWorkoutDraft(currentMember?.id);
+    if (draft?.routine) {
+      setActiveWorkoutRoutine(draft.routine);
+      setIsWorkoutModalOpen(true);
+    }
+  };
+
+  const handleDiscardDraft = () => {
+    if (window.confirm('¿Deseas descartar el avance del entrenamiento guardado y empezar desde cero?')) {
+      clearActiveWorkoutDraft(currentMember?.id);
+      setActiveDraft(null);
       setActiveWorkoutRoutine(null);
     }
   };
@@ -695,10 +724,59 @@ export default function App() {
       {isWorkoutModalOpen && activeWorkoutRoutine && (
         <ActiveWorkoutModal
           routine={activeWorkoutRoutine}
+          memberId={currentMember?.id}
           onFinishWorkout={handleFinishWorkout}
           onCancelWorkout={handleCancelWorkout}
           onTriggerRestTimer={handleTriggerRestTimer}
         />
+      )}
+
+      {/* Floating Active Routine In-Progress Banner (Shows when modal is minimized) */}
+      {!isWorkoutModalOpen && activeDraft && activeDraft.routine && (
+        <div className="fixed bottom-4 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-md z-45 animate-in slide-in-from-bottom-5">
+          <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border-2 border-emerald-500/70 rounded-2xl p-3.5 sm:p-4 text-white shadow-2xl shadow-emerald-950/60 flex items-center justify-between gap-3 backdrop-blur-md">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
+                <Dumbbell className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="truncate">
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                  Rutina en Curso Guardada
+                </span>
+                <h4 className="text-xs sm:text-sm font-bold truncate">
+                  {activeDraft.routine?.name}
+                </h4>
+                <p className="text-[11px] text-slate-300 font-mono flex items-center gap-2">
+                  <span>
+                    ⏱️ {Math.floor((activeDraft.elapsedSeconds || 0) / 60)}m {((activeDraft.elapsedSeconds || 0) % 60)}s
+                  </span>
+                  <span>·</span>
+                  <span className="text-emerald-400 font-bold">
+                    {activeDraft.workoutExercises?.reduce((acc: number, ex: any) => acc + (ex.sets?.filter((s: any) => s.completed)?.length || 0), 0)} series hechas
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <button
+                onClick={handleResumeWorkout}
+                className="px-3 sm:px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Reanudar</span>
+              </button>
+              <button
+                onClick={handleDiscardDraft}
+                className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                title="Descartar y reiniciar"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Android & PWA Installation Modal */}

@@ -535,3 +535,52 @@ export function saveStoredProfile(profile: UserProfile) {
     console.error('Failed to save profile', e);
   }
 }
+
+// ACTIVE WORKOUT DRAFT AUTO-SAVE (RESUME WHERE YOU LEFT OFF)
+export interface ActiveWorkoutDraft {
+  routineId: string;
+  routine: Routine;
+  elapsedSeconds: number;
+  workoutExercises: any[];
+  sessionNotes: string;
+  lastUpdated: string;
+  memberId?: string;
+}
+
+export const ACTIVE_WORKOUT_STORAGE_KEY = 'gymtrack_active_workout_draft_v1';
+
+export function getActiveWorkoutDraft(memberId?: string | null): ActiveWorkoutDraft | null {
+  if (typeof window === 'undefined') return null;
+  const key = memberId ? `${ACTIVE_WORKOUT_STORAGE_KEY}_${memberId}` : ACTIVE_WORKOUT_STORAGE_KEY;
+  try {
+    const raw = localStorage.getItem(key) || localStorage.getItem(ACTIVE_WORKOUT_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function saveActiveWorkoutDraft(draft: ActiveWorkoutDraft, memberId?: string | null) {
+  if (typeof window === 'undefined') return;
+  const key = memberId ? `${ACTIVE_WORKOUT_STORAGE_KEY}_${memberId}` : ACTIVE_WORKOUT_STORAGE_KEY;
+  try {
+    const serialized = JSON.stringify(draft);
+    localStorage.setItem(key, serialized);
+    localStorage.setItem(ACTIVE_WORKOUT_STORAGE_KEY, serialized);
+  } catch (e) {
+    console.error('Failed to save active workout draft', e);
+  }
+}
+
+export function clearActiveWorkoutDraft(memberId?: string | null) {
+  if (typeof window === 'undefined') return;
+  const key = memberId ? `${ACTIVE_WORKOUT_STORAGE_KEY}_${memberId}` : ACTIVE_WORKOUT_STORAGE_KEY;
+  try {
+    localStorage.removeItem(key);
+    localStorage.removeItem(ACTIVE_WORKOUT_STORAGE_KEY);
+  } catch (e) {
+    console.error('Failed to clear active workout draft', e);
+  }
+}
+

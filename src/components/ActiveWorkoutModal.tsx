@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routine, WorkoutSession, WorkoutSet } from '../types';
-import { Check, Play, Pause, Plus, Trash2, Timer, Flame, Dumbbell, Award, X } from 'lucide-react';
+import { Check, Play, Pause, Plus, Trash2, Timer, Flame, Dumbbell, Award, X, Minimize2, Save, RotateCcw, ArrowLeft } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ExerciseVisualBadge } from './ExerciseVisualBadge';
 import { AlfaOmegaLogo } from './AlfaOmegaLogo';
+import { getActiveWorkoutDraft, saveActiveWorkoutDraft, clearActiveWorkoutDraft, ActiveWorkoutDraft } from '../utils/storage';
 
 interface ActiveWorkoutModalProps {
   routine: Routine;
+  memberId?: string;
   onFinishWorkout: (session: WorkoutSession) => void;
   onCancelWorkout: () => void;
   onTriggerRestTimer: (seconds: number) => void;
@@ -14,26 +16,53 @@ interface ActiveWorkoutModalProps {
 
 export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   routine,
+  memberId,
   onFinishWorkout,
   onCancelWorkout,
   onTriggerRestTimer,
 }) => {
+  // Check if there is an existing in-progress draft for this routine
+  const existingDraft = getActiveWorkoutDraft(memberId);
+  const isMatchingDraft = existingDraft && existingDraft.routineId === routine.id;
+
   // Session timer in seconds
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(() =>
+    isMatchingDraft ? (existingDraft.elapsedSeconds || 0) : 0
+  );
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const timerRef = useRef<any>(null);
 
-  // Deep copy exercises so modifications don't mutate original preset
-  const [workoutExercises, setWorkoutExercises] = useState(() =>
-    (routine.exercises || []).map((ex) => ({
+  // Deep copy exercises or restore previous progress
+  const [workoutExercises, setWorkoutExercises] = useState(() => {
+    if (isMatchingDraft && Array.isArray(existingDraft.workoutExercises) && existingDraft.workoutExercises.length > 0) {
+      return existingDraft.workoutExercises;
+    }
+    return (routine.exercises || []).map((ex) => ({
       ...ex,
       sets: (ex.sets || []).map((s) => ({ ...s, completed: false })),
-    }))
-  );
+    }));
+  });
 
-  const [sessionNotes, setSessionNotes] = useState('');
+  const [sessionNotes, setSessionNotes] = useState<string>(() =>
+    isMatchingDraft ? (existingDraft.sessionNotes || '') : ''
+  );
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [finishedSummary, setFinishedSummary] = useState<WorkoutSession | null>(null);
+  const [showExitConfirmDialog, setShowExitConfirmDialog] = useState(false);
+
+  // Auto-save routine progress on any change
+  useEffect(() => {
+    const draft: ActiveWorkoutDraft = {
+      routineId: routine.id,
+      routine,
+      elapsedSeconds,
+      workoutExercises,
+      sessionNotes,
+      lastUpdated: new Date().toISOString(),
+      memberId,
+    };
+    saveActiveWorkoutDraft(draft, memberId);
+  }, [routine, elapsedSeconds, workoutExercises, sessionNotes, memberId]);
 
   useEffect(() => {
     if (isTimerRunning) {
@@ -152,6 +181,21 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
     } catch {}
   };
 
+  const handleResetToZero = () => {
+    if (window.confirm('¿Deseas reiniciar todas las series y el temporizador de esta rutina a 0?')) {
+      clearActiveWorkoutDraft(memberId);
+      setElapsedSeconds(0);
+      setWorkoutExercises(
+        (routine.exercises || []).map((ex) => ({
+          ...ex,
+          sets: (ex.sets || []).map((s) => ({ ...s, completed: false })),
+        }))
+      );
+      setSessionNotes('');
+      setShowExitConfirmDialog(false);
+    }
+  };
+
   const minutes = Math.floor(elapsedSeconds / 60);
   const seconds = elapsedSeconds % 60;
   const timeFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -159,16 +203,18 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col justify-between overflow-y-auto">
       {/* Top sticky workout control bar */}
-      <div className="sticky top-0 z-20 bg-slate-900 border-b border-slate-800 text-white px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-xl">
-        <div className="flex items-center gap-3">
+      <div className="sticky top-0 z-20 bg-slate-900 border-b border-slate-800 text-white px-3 sm:px-8 py-3 flex items-center justify-between shadow-xl">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
-            onClick={onCancelWorkout}
-            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
-            title="Descartar entrenamiento"
+            onClick={() => setShowExitConfirmDialog(true)}
+            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-xl text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+            title="Guardar avance y salir"
           >
-            <X className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline">Guardar y Salir</span>
+            <span className="sm:hidden">Salir</span>
           </button>
-          <div className="hidden sm:flex items-center px-1.5 py-0.5 bg-white rounded-lg shadow-xs">
+          <div className="hidden md:flex items-center px-1.5 py-0.5 bg-white rounded-lg shadow-xs">
             <AlfaOmegaLogo size="sm" variant="icon" />
           </div>
           <div>
@@ -176,17 +222,17 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
               Alfa &amp; Omega Gym · En Curso
             </span>
-            <h2 className="text-sm sm:text-base font-bold truncate max-w-[200px] sm:max-w-xs">
+            <h2 className="text-xs sm:text-base font-bold truncate max-w-[140px] sm:max-w-xs">
               {routine.name}
             </h2>
           </div>
         </div>
 
         {/* Live Metrics Header */}
-        <div className="flex items-center gap-4 sm:gap-6">
-          <div className="flex items-center gap-2">
-            <Timer className="w-4 h-4 text-emerald-400" />
-            <span className="font-mono text-lg sm:text-xl font-extrabold tracking-tight">
+        <div className="flex items-center gap-2.5 sm:gap-6">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+            <span className="font-mono text-base sm:text-xl font-extrabold tracking-tight">
               {timeFormatted}
             </span>
           </div>
@@ -204,7 +250,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
           <button
             id="btn-finish-workout-top"
             onClick={handleCompleteWorkout}
-            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+            className="px-3 sm:px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
           >
             Finalizar
           </button>
@@ -424,13 +470,71 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
             <button
               id="btn-close-summary"
               onClick={() => {
+                clearActiveWorkoutDraft(memberId);
                 setShowSummaryModal(false);
                 onFinishWorkout(finishedSummary);
               }}
-              className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg transition-all"
+              className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow-lg transition-all cursor-pointer"
             >
               Continuar al Panel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Exit & Save Options Dialog */}
+      {showExitConfirmDialog && (
+        <div className="fixed inset-0 z-60 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-7 text-white shadow-2xl space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <Save className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">¿Deseas salir del entrenamiento?</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Tu avance ({totalCompletedSets}/{totalSets} series · {timeFormatted}) está seguro.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-1.5 leading-relaxed">
+              <p className="flex items-center gap-2 font-semibold text-emerald-300">
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                Tu progreso se guarda automáticamente.
+              </p>
+              <p className="text-slate-400 pl-6">
+                Al salir, verás una barra flotante para reanudar tu rutina en cualquier momento exactamente donde la dejaste.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 pt-1">
+              <button
+                onClick={() => {
+                  setShowExitConfirmDialog(false);
+                  onCancelWorkout(); // Closes modal, keeps draft
+                }}
+                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>Guardar Avance y Salir</span>
+              </button>
+
+              <button
+                onClick={() => setShowExitConfirmDialog(false)}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-750 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer"
+              >
+                Seguir Entrenando
+              </button>
+
+              <button
+                onClick={handleResetToZero}
+                className="w-full py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reiniciar Rutina a Cero</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
