@@ -243,26 +243,40 @@ export const InitialAccessPortal: React.FC<InitialAccessPortalProps> = ({
   const branchMembers = selectedBranch ? members.filter((m) => m.branch === selectedBranch) : [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex flex-col justify-between p-4 sm:p-6 font-['Plus_Jakarta_Sans',sans-serif]">
-      {/* Top Brand Bar */}
-      <div className="max-w-5xl mx-auto w-full flex items-center justify-between py-2">
-        <div className="flex items-center gap-2.5">
-          <AlfaOmegaLogo size="sm" variant="compact" showText={false} />
-          <div>
-            <span className="font-black text-sm tracking-tight text-white font-['Space_Grotesk'] block leading-tight">
-              ALFA <span className="text-red-500">&amp;</span> OMEGA <span className="text-red-500">GYM</span>
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium block">
-              Sistema Multisede · León · San Luis Potosí · Silao · Comanjilla
-            </span>
+    <div className="relative min-h-screen text-slate-100 flex flex-col justify-between p-4 sm:p-6 font-['Plus_Jakarta_Sans',sans-serif] overflow-x-hidden">
+      {/* High-Impact Gym Photography Background with Dramatic Athletic Lighting */}
+      <div 
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-700 pointer-events-none scale-100"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1920&q=85')`,
+        }}
+      >
+        {/* Cinematic Multi-gradient overlays for high contrast, energy and depth */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/85 via-slate-900/80 to-slate-950/92 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-600/30 via-transparent to-slate-950/50" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-amber-500/15 via-transparent to-transparent" />
+      </div>
+
+      <div className="relative z-10 flex flex-col justify-between flex-1 space-y-6">
+        {/* Top Brand Bar */}
+        <div className="max-w-5xl mx-auto w-full flex items-center justify-between py-2">
+          <div className="flex items-center gap-2.5">
+            <AlfaOmegaLogo size="sm" variant="compact" showText={false} />
+            <div>
+              <span className="font-black text-sm tracking-tight text-white font-['Space_Grotesk'] block leading-tight">
+                ALFA <span className="text-red-500">&amp;</span> OMEGA <span className="text-red-500">GYM</span>
+              </span>
+              <span className="text-[10px] text-slate-300 font-medium block">
+                Sistema Multisede · León · San Luis Potosí · Silao · Comanjilla
+              </span>
+            </div>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-2 text-xs text-slate-300">
+            <Building2 className="w-3.5 h-3.5 text-red-400" />
+            <span>4 Sucursales con Control de Acceso Biométrico</span>
           </div>
         </div>
-
-        <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
-          <Building2 className="w-3.5 h-3.5 text-red-400" />
-          <span>4 Sucursales con Control de Acceso Biométrico</span>
-        </div>
-      </div>
 
       {/* SCREEN 1: PANEL INICIAL PARA ELEGIR LA SUCURSAL */}
       {!selectedBranch ? (
@@ -896,13 +910,14 @@ export const InitialAccessPortal: React.FC<InitialAccessPortalProps> = ({
       )}
 
       {/* Footer info */}
-      <div className="max-w-md mx-auto w-full text-center text-xs text-slate-500 py-2">
+      <div className="max-w-md mx-auto w-full text-center text-xs text-slate-400 py-2">
         <p>
           Alfa &amp; Omega Gym · Control de Socios, Historial &amp; Staff de Entrenamiento
         </p>
-        <p className="text-[11px] text-slate-600 mt-0.5">
+        <p className="text-[11px] text-slate-500 mt-0.5">
           Base de Datos Segura conectada con Firebase Cloud Firestore
         </p>
+      </div>
       </div>
     </div>
   );

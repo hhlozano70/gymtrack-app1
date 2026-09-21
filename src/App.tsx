@@ -566,24 +566,36 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 font-['Plus_Jakarta_Sans',sans-serif] flex flex-col selection:bg-red-600 selection:text-white">
-      {/* Top Navigation Bar */}
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onExportPDF={handleExportPDF}
-        isExportingPDF={isExportingPDF}
-        hasActiveWorkout={activeWorkoutRoutine !== null}
-        onOpenActiveWorkout={() => setIsWorkoutModalOpen(true)}
-        restTimerSeconds={restSecondsLeft}
-        onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
-        currentRole={currentRole}
-        currentMember={currentMember}
-        currentCoach={currentCoach}
-        isAdmin={isAdmin}
-        onOpenAdminPortal={() => setIsAdminPortalOpen(true)}
-        onLogout={handleLogout}
-      />
+    <div className="relative min-h-screen text-slate-900 font-['Plus_Jakarta_Sans',sans-serif] flex flex-col selection:bg-red-600 selection:text-white overflow-x-hidden bg-slate-900">
+      {/* Dynamic Fitness Atmosphere Background with Subtle Gym Texture & Lighting */}
+      <div 
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-20 transition-all duration-700 scale-105"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1920&q=85')`,
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-100/96 via-slate-100/92 to-slate-200/98 backdrop-blur-[1px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-600/10 via-transparent to-transparent" />
+      </div>
+
+      <div className="relative z-10 flex flex-col min-h-screen">
+        {/* Top Navigation Bar */}
+        <Navbar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onExportPDF={handleExportPDF}
+          isExportingPDF={isExportingPDF}
+          hasActiveWorkout={activeWorkoutRoutine !== null}
+          onOpenActiveWorkout={() => setIsWorkoutModalOpen(true)}
+          restTimerSeconds={restSecondsLeft}
+          onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
+          currentRole={currentRole}
+          currentMember={currentMember}
+          currentCoach={currentCoach}
+          isAdmin={isAdmin}
+          onOpenAdminPortal={() => setIsAdminPortalOpen(true)}
+          onLogout={handleLogout}
+        />
 
       {/* Main Content Area */}
       <main className="flex-1 pb-16">
@@ -785,22 +797,23 @@ export default function App() {
         onClose={() => setIsAndroidModalOpen(false)}
       />
 
-      {/* Administrator Database & Passwords Management Portal */}
-      <AdminPortalModal
-        isOpen={isAdminPortalOpen}
-        onClose={() => setIsAdminPortalOpen(false)}
-        members={members}
-        coaches={coaches}
-        onSaveMember={handleSaveMember}
-        onDeleteMember={handleDeleteMember}
-        onSaveCoach={handleSaveCoach}
-        onResetDemoMembers={handleResetDemoMembers}
-        onSelectMemberToView={(member) => {
-          handleLoginMember(member);
-          setIsAdminPortalOpen(false);
-        }}
-        onLogoutAdmin={handleLogout}
-      />
+        {/* Administrator Database & Passwords Management Portal */}
+        <AdminPortalModal
+          isOpen={isAdminPortalOpen}
+          onClose={() => setIsAdminPortalOpen(false)}
+          members={members}
+          coaches={coaches}
+          onSaveMember={handleSaveMember}
+          onDeleteMember={handleDeleteMember}
+          onSaveCoach={handleSaveCoach}
+          onResetDemoMembers={handleResetDemoMembers}
+          onSelectMemberToView={(member) => {
+            handleLoginMember(member);
+            setIsAdminPortalOpen(false);
+          }}
+          onLogoutAdmin={handleLogout}
+        />
+      </div>
     </div>
   );
 }
