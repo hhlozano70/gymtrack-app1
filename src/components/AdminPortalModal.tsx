@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Member, GymCoach, GymBranch, PaymentStatus } from '../types';
 import { AlfaOmegaLogo } from './AlfaOmegaLogo';
 import {
@@ -34,8 +34,28 @@ import {
   CreditCard,
   Ban,
   Check,
+  Archive,
+  Download,
+  Upload,
+  RotateCcw,
+  ShieldAlert,
+  FileJson,
+  History,
+  FileText,
+  CheckCircle2,
 } from 'lucide-react';
-import { setAdminPassword, getAdminPassword } from '../utils/firebase';
+import {
+  setAdminPassword,
+  getAdminPassword,
+  exportFullGymBackup,
+  downloadBackupAsJsonFile,
+  importFullGymBackup,
+  getSafetySnapshot,
+  restoreSafetySnapshot,
+  resetMemberHistoryInDb,
+  deleteMemberCompletelyFromDb,
+  SafetySnapshotData,
+} from '../utils/firebase';
 
 interface AdminPortalModalProps {
   isOpen: boolean;
@@ -44,10 +64,12 @@ interface AdminPortalModalProps {
   coaches: GymCoach[];
   onSaveMember: (member: Member) => Promise<void>;
   onDeleteMember: (memberId: string) => Promise<void>;
+  onResetMemberHistory?: (memberId: string) => Promise<void>;
   onSaveCoach: (coach: GymCoach) => Promise<void>;
   onSelectMemberToView: (member: Member) => void;
   onLogoutAdmin: () => void;
   onResetDemoMembers?: () => Promise<void>;
+  onReloadDatabase?: () => Promise<void>;
 }
 
 export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
@@ -57,14 +79,16 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   coaches,
   onSaveMember,
   onDeleteMember,
+  onResetMemberHistory,
   onSaveCoach,
   onSelectMemberToView,
   onLogoutAdmin,
-  onResetDemoMembers
+  onResetDemoMembers,
+  onReloadDatabase,
 }) => {
   if (!isOpen) return null;
 
-  const [activeTab, setActiveTab] = useState<'members' | 'coaches' | 'security'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'coaches' | 'backup_restore' | 'security'>('members');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [branchFilter, setBranchFilter] = useState<'ALL' | GymBranch>('ALL');
@@ -76,6 +100,15 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
   const [showPasswordsMap, setShowPasswordsMap] = useState<{ [id: string]: boolean }>({});
   const [adminNotice, setAdminNotice] = useState<string | null>(null);
   const [isResettingDemo, setIsResettingDemo] = useState(false);
+
+  // Backup & Reset state
+  const [memberToReset, setMemberToReset] = useState<Member | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [isPerformingDestructiveAction, setIsPerformingDestructiveAction] = useState(false);
+  const [isExportingBackup, setIsExportingBackup] = useState(false);
+  const [isImportingBackup, setIsImportingBackup] = useState(false);
+  const [safetySnapshot, setSafetySnapshot] = useState<SafetySnapshotData | null>(() => getSafetySnapshot());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Coach editing
   const [editingCoach, setEditingCoach] = useState<GymCoach | null>(null);
@@ -259,6 +292,106 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     setTimeout(() => setAdminNotice(null), 3500);
   };
 
+  const handleExportBackup = async () => {
+    setIsExportingBackup(true);
+    try {
+      const backup = await exportFullGymBackup();
+      downloadBackupAsJsonFile(backup);
+      setAdminNotice(`¡Respaldo descargado con éxito! Contiene ${backup.members.length} socios, ${backup.coaches.length} coaches y todas las rutinas.`);
+      setSafetySnapshot(getSafetySnapshot());
+      setTimeout(() => setAdminNotice(null), 5000);
+    } catch (err: any) {
+      alert('Error al exportar respaldo: ' + err.message);
+    } finally {
+      setIsExportingBackup(false);
+    }
+  };
+
+  const handleImportBackupFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImportingBackup(true);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const result = await importFullGymBackup(parsed);
+      if (result.success) {
+        setAdminNotice(result.message);
+        setSafetySnapshot(getSafetySnapshot());
+        if (onReloadDatabase) {
+          await onReloadDatabase();
+        }
+        setTimeout(() => setAdminNotice(null), 5000);
+      } else {
+        alert(result.message);
+      }
+    } catch (err: any) {
+      alert('Error al procesar archivo JSON: ' + err.message);
+    } finally {
+      setIsImportingBackup(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRestoreSafetyPoint = async () => {
+    if (!confirm('¿Deseas restaurar la base de datos al estado anterior al último borrado?')) return;
+    setIsImportingBackup(true);
+    try {
+      const result = await restoreSafetySnapshot();
+      if (result.success) {
+        setAdminNotice('¡Base de datos restaurada al punto de seguridad previo exitosamente!');
+        setSafetySnapshot(getSafetySnapshot());
+        if (onReloadDatabase) {
+          await onReloadDatabase();
+        }
+        setTimeout(() => setAdminNotice(null), 5000);
+      } else {
+        alert(result.message);
+      }
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    } finally {
+      setIsImportingBackup(false);
+    }
+  };
+
+  const executeResetMemberHistory = async () => {
+    if (!memberToReset) return;
+    setIsPerformingDestructiveAction(true);
+    try {
+      await resetMemberHistoryInDb(memberToReset.id);
+      if (onResetMemberHistory) {
+        await onResetMemberHistory(memberToReset.id);
+      }
+      setSafetySnapshot(getSafetySnapshot());
+      setAdminNotice(`Historial de entrenamientos y pesajes de ${memberToReset.name} (${memberToReset.membershipNumber}) reiniciado a 0 en Firebase. (Se creó respaldo de seguridad automático).`);
+      setMemberToReset(null);
+      setTimeout(() => setAdminNotice(null), 5000);
+    } catch (err: any) {
+      alert('Error al reiniciar historial: ' + err.message);
+    } finally {
+      setIsPerformingDestructiveAction(false);
+    }
+  };
+
+  const executeDeleteMemberCompletely = async () => {
+    if (!memberToDelete) return;
+    setIsPerformingDestructiveAction(true);
+    try {
+      await deleteMemberCompletelyFromDb(memberToDelete.id);
+      await onDeleteMember(memberToDelete.id);
+      setSafetySnapshot(getSafetySnapshot());
+      setAdminNotice(`Socio ${memberToDelete.name} (${memberToDelete.membershipNumber}) y su historial eliminados definitivamente de Firebase. (Se creó respaldo de seguridad automático).`);
+      setMemberToDelete(null);
+      setTimeout(() => setAdminNotice(null), 5000);
+    } catch (err: any) {
+      alert('Error al eliminar socio: ' + err.message);
+    } finally {
+      setIsPerformingDestructiveAction(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
       <div className="bg-slate-900 text-slate-100 rounded-3xl max-w-6xl w-full h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-slate-800 animate-in fade-in zoom-in-95 duration-200">
@@ -278,7 +411,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Control de membresías, contraseñas, socios y coaches oficiales
+                Control de membresías, contraseñas, respaldos y seguridad de socios
               </p>
             </div>
           </div>
@@ -286,7 +419,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onLogoutAdmin}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
             >
               Cerrar Modo Admin
             </button>
@@ -300,11 +433,11 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
         </div>
 
         {/* Sub-Header Navigation Tabs */}
-        <div className="px-6 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-1">
+        <div className="px-6 py-2.5 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1 overflow-x-auto py-1">
             <button
               onClick={() => setActiveTab('members')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 ${
                 activeTab === 'members'
                   ? 'bg-red-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -316,7 +449,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
             <button
               onClick={() => setActiveTab('coaches')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 ${
                 activeTab === 'coaches'
                   ? 'bg-red-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -327,8 +460,20 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('backup_restore')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'backup_restore'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Archive className="w-3.5 h-3.5 text-amber-400" />
+              <span>Respaldos &amp; Backups</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('security')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 ${
                 activeTab === 'security'
                   ? 'bg-red-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -673,13 +818,17 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                                 </button>
 
                                 <button
-                                  onClick={() => {
-                                    if (confirm(`¿Eliminar al socio ${member.name} (${member.membershipNumber}) de la base de datos?`)) {
-                                      onDeleteMember(member.id);
-                                    }
-                                  }}
-                                  className="p-1.5 hover:bg-red-950 text-slate-500 hover:text-red-400 rounded-lg cursor-pointer"
-                                  title="Eliminar socio"
+                                  onClick={() => setMemberToReset(member)}
+                                  className="p-1.5 hover:bg-amber-950/60 text-slate-500 hover:text-amber-400 rounded-lg cursor-pointer transition-colors"
+                                  title="Reiniciar historial de entrenamientos y pesajes a 0"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                  onClick={() => setMemberToDelete(member)}
+                                  className="p-1.5 hover:bg-red-950 text-slate-500 hover:text-red-400 rounded-lg cursor-pointer transition-colors"
+                                  title="Eliminar socio de la base de datos"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -788,6 +937,128 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'backup_restore' && (
+            <div className="space-y-6 max-w-4xl">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Archive className="w-5 h-5 text-amber-400" />
+                  <span>Sistema de Respaldos y Protección contra Pérdida de Datos</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Exporta e importa copias de seguridad de todos los socios, historiales y rutinas, o restaura la base de datos al estado previo al último borrado.
+                </p>
+              </div>
+
+              {/* Hidden file input for import */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".json"
+                onChange={handleImportBackupFile}
+                className="hidden"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. Export Backup Card */}
+                <div className="bg-slate-950/70 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                      <Download className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-bold text-white text-sm">Exportar Respaldo (.JSON)</h4>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Descarga una copia completa en archivo JSON con los {members.length} socios de las 4 sucursales, staff de coaches, rutinas completas y todos los historiales de entrenamientos y pesajes.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleExportBackup}
+                    disabled={isExportingBackup}
+                    className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20 active:scale-98 transition-all"
+                  >
+                    <Download className={`w-4 h-4 ${isExportingBackup ? 'animate-bounce' : ''}`} />
+                    <span>{isExportingBackup ? 'Generando Respaldo...' : 'Descargar Copia JSON'}</span>
+                  </button>
+                </div>
+
+                {/* 2. Import Backup Card */}
+                <div className="bg-slate-950/70 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-bold text-white text-sm">Restaurar desde Respaldo</h4>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Sube un archivo <code className="text-emerald-400 font-mono text-[11px]">.json</code> previamente exportado. El sistema sincronizará Firestore y creará un snapshot previo de seguridad.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isImportingBackup}
+                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20 active:scale-98 transition-all"
+                  >
+                    <Upload className={`w-4 h-4 ${isImportingBackup ? 'animate-bounce' : ''}`} />
+                    <span>{isImportingBackup ? 'Restaurando...' : 'Subir Archivo de Respaldo'}</span>
+                  </button>
+                </div>
+
+                {/* 3. Safety Snapshot Undo Card */}
+                <div className="bg-slate-950/70 border border-amber-900/40 hover:border-amber-700/60 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                      <ShieldAlert className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-bold text-white text-sm">Punto de Recuperación Pre-Borrado</h4>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Snapshot automático capturado antes de cualquier eliminación o reinicio de historial para deshacer accidentes.
+                    </p>
+                    
+                    {safetySnapshot ? (
+                      <div className="p-2.5 bg-slate-900/90 rounded-xl border border-amber-500/30 text-[11px] space-y-1">
+                        <div className="flex items-center justify-between text-amber-300 font-bold">
+                          <span>Último Punto Disponible:</span>
+                          <span className="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-300">Activo</span>
+                        </div>
+                        <p className="text-slate-300 font-mono truncate">{safetySnapshot.actionName}</p>
+                        <p className="text-slate-400 text-[10px]">
+                          {new Date(safetySnapshot.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · {safetySnapshot.members.length} socios guardados
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 bg-slate-900/60 rounded-xl border border-slate-800 text-[11px] text-slate-500">
+                        Sin punto de seguridad reciente. Se generará automáticamente al eliminar o resetear datos.
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleRestoreSafetyPoint}
+                    disabled={!safetySnapshot || isImportingBackup}
+                    className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-500 disabled:opacity-30 disabled:hover:bg-amber-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-amber-600/20 active:scale-98 transition-all"
+                  >
+                    <RotateCcw className={`w-4 h-4 ${isImportingBackup ? 'animate-spin' : ''}`} />
+                    <span>Deshacer Borrado / Restaurar</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Information / Safety Details Banner */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex items-start gap-3 text-xs text-slate-300">
+                <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="font-bold text-white">Garantía Anti-Pérdida de Datos:</span>
+                  <p className="text-slate-400 leading-relaxed">
+                    Cada vez que un administrador usa la opción de <strong className="text-amber-400">Reiniciar Historial</strong> o <strong className="text-red-400">Eliminar Socio</strong>, el sistema captura automáticamente un snapshot de seguridad en el dispositivo. Si se cometió un error, puedes presionar el botón <em>"Deshacer Borrado"</em> para recuperar al socio y sus historiales inmediatamente.
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -1289,6 +1560,104 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Resetting Member History */}
+      {memberToReset && (
+        <div className="fixed inset-0 z-70 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                <RotateCcw className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">¿Reiniciar Historial a 0?</h3>
+                <p className="text-xs text-slate-400">
+                  Socio: <strong className="text-white">{memberToReset.name}</strong> ({memberToReset.membershipNumber})
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-2">
+              <p>
+                Esta acción eliminará <strong className="text-amber-400">todos los entrenamientos completados y registros de pesaje</strong> de este socio en Firebase Firestore y el dispositivo.
+              </p>
+              <div className="p-2 bg-emerald-950/50 border border-emerald-800/40 rounded-lg text-[11px] text-emerald-300 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>Se guardará un punto de restauración automático para poder deshacer si es necesario.</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isPerformingDestructiveAction}
+                onClick={() => setMemberToReset(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isPerformingDestructiveAction}
+                onClick={executeResetMemberHistory}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-600/20 active:scale-95 transition-all"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${isPerformingDestructiveAction ? 'animate-spin' : ''}`} />
+                <span>{isPerformingDestructiveAction ? 'Reiniciando...' : 'Sí, Reiniciar a Cero'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Deleting Member Completely */}
+      {memberToDelete && (
+        <div className="fixed inset-0 z-70 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-red-500/40 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-red-500/20 text-red-400 rounded-xl border border-red-500/30">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">¿Eliminar Socio Definitivamente?</h3>
+                <p className="text-xs text-slate-400">
+                  Socio: <strong className="text-white">{memberToDelete.name}</strong> ({memberToDelete.membershipNumber})
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-2">
+              <p>
+                Se borrará permanentemente la membresía, perfil, contraseñas, entrenamientos y pesajes de <strong className="text-red-400">{memberToDelete.name}</strong> en la base de datos de Firebase.
+              </p>
+              <div className="p-2 bg-emerald-950/50 border border-emerald-800/40 rounded-lg text-[11px] text-emerald-300 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>Se creará un respaldo de seguridad instantáneo antes de la eliminación.</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isPerformingDestructiveAction}
+                onClick={() => setMemberToDelete(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isPerformingDestructiveAction}
+                onClick={executeDeleteMemberCompletely}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-red-600/20 active:scale-95 transition-all"
+              >
+                <Trash2 className={`w-3.5 h-3.5 ${isPerformingDestructiveAction ? 'animate-spin' : ''}`} />
+                <span>{isPerformingDestructiveAction ? 'Eliminando...' : 'Sí, Eliminar Socio'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

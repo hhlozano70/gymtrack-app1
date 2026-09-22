@@ -1297,3 +1297,279 @@ export async function saveMemberWeightLogToDb(memberId: string, entry: WeightEnt
   }
 }
 
+// --- SAFETY SNAPSHOTS & ACCIDENTAL DELETION PROTECTION ---
+const LS_SAFETY_SNAPSHOT_KEY = 'ao_gym_last_safety_snapshot';
+
+export interface SafetySnapshotData {
+  timestamp: string;
+  actionName: string;
+  members: Member[];
+  coaches: GymCoach[];
+  consultations: CoachConsultation[];
+  routines: Routine[];
+  memberWorkouts: { [memberId: string]: WorkoutSession[] };
+  memberWeightLogs: { [memberId: string]: WeightEntry[] };
+}
+
+export async function createSafetySnapshot(actionName = 'Operación Administrativa'): Promise<SafetySnapshotData> {
+  const [members, coaches, consultations, routines] = await Promise.all([
+    fetchMembersFromDb(),
+    fetchCoachesFromDb(),
+    fetchConsultationsFromDb(),
+    fetchRoutinesFromDb(),
+  ]);
+
+  const memberWorkouts: { [memberId: string]: WorkoutSession[] } = {};
+  const memberWeightLogs: { [memberId: string]: WeightEntry[] } = {};
+
+  for (const m of members) {
+    try {
+      const wList = await fetchMemberWorkoutLogsFromDb(m.id);
+      if (wList && wList.length > 0) memberWorkouts[m.id] = wList;
+      const wlList = await fetchMemberWeightLogsFromDb(m.id);
+      if (wlList && wlList.length > 0) memberWeightLogs[m.id] = wlList;
+    } catch {}
+  }
+
+  const snapshot: SafetySnapshotData = {
+    timestamp: new Date().toISOString(),
+    actionName,
+    members,
+    coaches,
+    consultations,
+    routines,
+    memberWorkouts,
+    memberWeightLogs,
+  };
+
+  try {
+    localStorage.setItem(LS_SAFETY_SNAPSHOT_KEY, JSON.stringify(snapshot));
+  } catch (e) {
+    console.warn('Safety snapshot local save error:', e);
+  }
+
+  return snapshot;
+}
+
+export function getSafetySnapshot(): SafetySnapshotData | null {
+  try {
+    const raw = localStorage.getItem(LS_SAFETY_SNAPSHOT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function restoreSafetySnapshot(): Promise<{ success: boolean; message: string }> {
+  const snapshot = getSafetySnapshot();
+  if (!snapshot) {
+    return { success: false, message: 'No existe ningún punto de restauración previo.' };
+  }
+
+  return await importFullGymBackup(snapshot);
+}
+
+// --- RESET INDIVIDUAL MEMBER HISTORY (WORKOUTS & WEIGHTS) ---
+export async function resetMemberHistoryInDb(memberId: string): Promise<void> {
+  // 1. Create safety snapshot first before destructive action
+  await createSafetySnapshot(`Reinicio de Historial Socio (${memberId})`);
+
+  // 2. Clear local cache
+  const workoutKey = `gymtrack_workout_logs_${memberId}`;
+  const weightKey = `gymtrack_weight_logs_${memberId}`;
+  try {
+    localStorage.removeItem(workoutKey);
+    localStorage.removeItem(weightKey);
+    if (memberId === 'member-ao-1001') {
+      localStorage.setItem('gymtrack_workout_logs_v1', JSON.stringify([]));
+      localStorage.setItem('gymtrack_weight_logs_v1', JSON.stringify([]));
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+  // 3. Clear from Firestore subcollections
+  if (db) {
+    try {
+      const workoutSnap = await getDocs(collection(db, 'members', memberId, 'workouts'));
+      for (const d of workoutSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+      const weightSnap = await getDocs(collection(db, 'members', memberId, 'weightLogs'));
+      for (const d of weightSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+    } catch (err) {
+      console.warn('Firestore reset member history notice:', err);
+    }
+  }
+}
+
+// --- COMPLETE MEMBER DELETION (INCLUDING SUBCOLLECTIONS) ---
+export async function deleteMemberCompletelyFromDb(memberId: string): Promise<void> {
+  // 1. Safety snapshot
+  await createSafetySnapshot(`Eliminación Completa Socio (${memberId})`);
+
+  // 2. Reset history
+  await resetMemberHistoryInDb(memberId);
+
+  // 3. Delete member record
+  await deleteMemberFromDb(memberId);
+}
+
+// --- FULL BACKUP EXPORT & RESTORE SYSTEM ---
+export interface FullGymBackupFile {
+  gymName: string;
+  backupDate: string;
+  backupVersion: string;
+  members: Member[];
+  coaches: GymCoach[];
+  consultations: CoachConsultation[];
+  routines: Routine[];
+  memberWorkouts: { [memberId: string]: WorkoutSession[] };
+  memberWeightLogs: { [memberId: string]: WeightEntry[] };
+}
+
+export async function exportFullGymBackup(): Promise<FullGymBackupFile> {
+  const [members, coaches, consultations, routines] = await Promise.all([
+    fetchMembersFromDb(),
+    fetchCoachesFromDb(),
+    fetchConsultationsFromDb(),
+    fetchRoutinesFromDb(),
+  ]);
+
+  const memberWorkouts: { [memberId: string]: WorkoutSession[] } = {};
+  const memberWeightLogs: { [memberId: string]: WeightEntry[] } = {};
+
+  for (const m of members) {
+    try {
+      const wList = await fetchMemberWorkoutLogsFromDb(m.id);
+      if (wList && wList.length > 0) memberWorkouts[m.id] = wList;
+      const wlList = await fetchMemberWeightLogsFromDb(m.id);
+      if (wlList && wlList.length > 0) memberWeightLogs[m.id] = wlList;
+    } catch {}
+  }
+
+  const backup: FullGymBackupFile = {
+    gymName: 'Alfa & Omega Gym',
+    backupDate: new Date().toISOString(),
+    backupVersion: '1.3.0',
+    members,
+    coaches,
+    consultations,
+    routines,
+    memberWorkouts,
+    memberWeightLogs,
+  };
+
+  return backup;
+}
+
+export function downloadBackupAsJsonFile(backup: FullGymBackupFile): void {
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = `AlfaOmegaGym_RespaldoCompleto_${dateStr}.json`;
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export async function importFullGymBackup(
+  backupData: any
+): Promise<{ success: boolean; message: string; stats?: any }> {
+  if (!backupData || !Array.isArray(backupData.members)) {
+    return { success: false, message: 'El archivo de respaldo no tiene el formato JSON válido de Alfa & Omega Gym.' };
+  }
+
+  // 1. Create a safety snapshot of current state before overriding
+  await createSafetySnapshot('Restauración desde Archivo de Respaldo');
+
+  try {
+    // 2. Restore Members
+    if (Array.isArray(backupData.members)) {
+      localStorage.setItem(LS_MEMBERS_KEY, JSON.stringify(backupData.members));
+      if (db) {
+        for (const m of backupData.members) {
+          await setDoc(doc(db, 'members', m.id), m, { merge: true });
+        }
+      }
+    }
+
+    // 3. Restore Coaches
+    if (Array.isArray(backupData.coaches)) {
+      localStorage.setItem(LS_COACHES_KEY, JSON.stringify(backupData.coaches));
+      if (db) {
+        for (const c of backupData.coaches) {
+          await setDoc(doc(db, 'coaches', c.id), c, { merge: true });
+        }
+      }
+    }
+
+    // 4. Restore Consultations
+    if (Array.isArray(backupData.consultations)) {
+      localStorage.setItem(LS_CONSULTATIONS_KEY, JSON.stringify(backupData.consultations));
+      if (db) {
+        for (const cons of backupData.consultations) {
+          await setDoc(doc(db, 'consultations', cons.id), cons, { merge: true });
+        }
+      }
+    }
+
+    // 5. Restore Routines
+    if (Array.isArray(backupData.routines)) {
+      localStorage.setItem(LS_ROUTINES_KEY, JSON.stringify(backupData.routines));
+      if (db) {
+        for (const r of backupData.routines) {
+          await setDoc(doc(db, 'members', ROUTINES_PARENT_DOC, 'routines', r.id), r, { merge: true });
+        }
+      }
+    }
+
+    // 6. Restore Member Workouts and Weights
+    if (backupData.memberWorkouts && typeof backupData.memberWorkouts === 'object') {
+      for (const [memId, wLogs] of Object.entries(backupData.memberWorkouts)) {
+        if (Array.isArray(wLogs)) {
+          localStorage.setItem(`gymtrack_workout_logs_${memId}`, JSON.stringify(wLogs));
+          if (db) {
+            for (const sess of wLogs as WorkoutSession[]) {
+              await setDoc(doc(db, 'members', memId, 'workouts', sess.id), sess, { merge: true });
+            }
+          }
+        }
+      }
+    }
+
+    if (backupData.memberWeightLogs && typeof backupData.memberWeightLogs === 'object') {
+      for (const [memId, wlLogs] of Object.entries(backupData.memberWeightLogs)) {
+        if (Array.isArray(wlLogs)) {
+          localStorage.setItem(`gymtrack_weight_logs_${memId}`, JSON.stringify(wlLogs));
+          if (db) {
+            for (const wEntry of wlLogs as WeightEntry[]) {
+              await setDoc(doc(db, 'members', memId, 'weightLogs', wEntry.id), wEntry, { merge: true });
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `¡Respaldo restaurado con éxito! Se sincronizaron ${backupData.members.length} socios y todas sus rutinas e historiales.`,
+      stats: {
+        members: backupData.members.length,
+        coaches: backupData.coaches?.length || 0,
+        routines: backupData.routines?.length || 0,
+      }
+    };
+  } catch (err: any) {
+    console.error('Import backup error:', err);
+    return { success: false, message: `Error al restaurar: ${err.message || 'Error desconocido'}` };
+  }
+}
+
+

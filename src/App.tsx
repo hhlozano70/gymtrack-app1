@@ -367,6 +367,42 @@ export default function App() {
     }
   };
 
+  const handleReloadDatabase = async () => {
+    try {
+      const [loadedMembers, loadedCoaches, loadedConsults, loadedRoutines] = await Promise.all([
+        fetchMembersFromDb(),
+        fetchCoachesFromDb(),
+        fetchConsultationsFromDb(),
+        fetchRoutinesFromDb(),
+      ]);
+      setMembers(loadedMembers);
+      setCoaches(loadedCoaches);
+      setConsultations(loadedConsults);
+      if (loadedRoutines && loadedRoutines.length > 0) {
+        setRoutines(loadedRoutines);
+      }
+      if (currentMember) {
+        const found = loadedMembers.find((m) => m.id === currentMember.id);
+        if (found) {
+          setCurrentMember(found);
+          const memberWorkouts = getMemberWorkoutLogs(found.id);
+          const memberWeights = getMemberWeightLogs(found.id, found.currentWeight, found.joinedDate);
+          setWorkoutLogs(memberWorkouts);
+          setWeightLogs(memberWeights);
+        }
+      }
+    } catch (err) {
+      console.error('Error reloading database:', err);
+    }
+  };
+
+  const handleResetMemberHistory = async (memberId: string) => {
+    if (currentMember && currentMember.id === memberId) {
+      setWorkoutLogs([]);
+      setWeightLogs([]);
+    }
+  };
+
   const handleResetDemoMembers = async () => {
     const updated = await seed20DemoMembers(true);
     setMembers(updated);
@@ -805,8 +841,10 @@ export default function App() {
           coaches={coaches}
           onSaveMember={handleSaveMember}
           onDeleteMember={handleDeleteMember}
+          onResetMemberHistory={handleResetMemberHistory}
           onSaveCoach={handleSaveCoach}
           onResetDemoMembers={handleResetDemoMembers}
+          onReloadDatabase={handleReloadDatabase}
           onSelectMemberToView={(member) => {
             handleLoginMember(member);
             setIsAdminPortalOpen(false);
